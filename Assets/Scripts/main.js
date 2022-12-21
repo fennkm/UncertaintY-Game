@@ -2,18 +2,22 @@
 
 import * as THREE from 'three';
 import { Vector3, Vector2 } from 'three';
-import { MeshLine, MeshLineMaterial } from 'ext/WebGL/MeshLine/MeshLine.js';
+import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { FlyControls } from 'three/examples/jsm/controls/FlyControls.js';
+import { MeshLine, MeshLineMaterial } from 'ext/WebGL/MeshLine/MeshLine.js';
 import { QuantumObject } from './QuantumObject.js';
 
 let scene;
-let renderer, canvas;
-let mainCamera, camera, debugCam, cameraHolder;
+let renderer, canvas, fxComposer;
+let activeCamera, camera, debugCam, cameraHolder;
 let light, innerLight, ambLight;
 let controls, clock;
 let pointer, raycaster, laser, laserLight, selectedObj;
 let qCube;
+
 var cameraRot;
+
 var laserOn = false;
 var laserTimer = 0;
 const laserDuration = 1;
@@ -23,17 +27,19 @@ var helpers;
 
 function main() 
 {
-    canvas = document.getElementById( "gl-canvas" );
-    renderer = new THREE.WebGLRenderer({canvas});
+    canvas = document.getElementById("gl-canvas");
+    renderer = new THREE.WebGLRenderer({ canvas });
     renderer.shadowMap.enabled = true;
 
     clock = new THREE.Clock();
     
     scene = new THREE.Scene();
     scene.background = new THREE.Color('black');
+
+    fxComposer = new EffectComposer(renderer);
   
     const fov = 45;
-    const aspect = 2;  // the canvas default
+    const aspect = 2;
     const near = 0.1;
     const far = 10000;
     camera = new THREE.PerspectiveCamera(fov, aspect, near, far);
@@ -43,7 +49,7 @@ function main()
     debugCam = new THREE.PerspectiveCamera(fov, aspect, near, far);
     debugCam.position.set(0, 5, 0);
 
-    mainCamera = (debug ? debugCam : camera);
+    activeCamera = (debug ? debugCam : camera);
 
     cameraHolder = new THREE.Object3D();
     cameraHolder.position.set(0, 5, 0);
@@ -53,34 +59,14 @@ function main()
     
     createControls(debugCam);
 
-    const textureGrass = new THREE.TextureLoader().load('./Assets/Textures/Grass002_2K_Color.png');
-    textureGrass.wrapS = THREE.RepeatWrapping;
-    textureGrass.wrapT = THREE.RepeatWrapping;
-    textureGrass.repeat.set( 10, 10 );
-
-    const grassNormal = new THREE.TextureLoader().load('./Assets/Textures/Grass002_2K_NormalGL.png');
-    grassNormal.wrapS = THREE.RepeatWrapping;
-    grassNormal.wrapT = THREE.RepeatWrapping;
-    grassNormal.repeat.set( 10, 10 );
-
-    // immediately use the texture for material creation
-
-    const PlaneGeometry = new THREE.PlaneGeometry( 1000, 1000 );
-    const planeMaterial = new THREE.MeshStandardMaterial( { map: textureGrass, normalMap: grassNormal, normalScale: new Vector2(0.2, 0.2)} );
-    const plane = new THREE.Mesh( PlaneGeometry, planeMaterial );
-    plane.rotateX(-Math.PI/2);
-    plane.receiveShadow = true;
-    //scene.add( plane );
-
     var ambLightIntensity;
     if (debug)
         ambLightIntensity = 2 //0.5
     else
         ambLightIntensity = 0.6 //0.022
-    ambLight = new THREE.AmbientLight( 0x404040, ambLightIntensity); // soft white light
+    ambLight = new THREE.AmbientLight( 0x404040, ambLightIntensity);
     scene.add( ambLight );
 
-    // added spotlight to enhance difference between texture and texture + normal
     light = new THREE.SpotLight( 0xddddff, 1, undefined, Math.PI / 12, 0.2);
 	light.position.set(0, -1, 0);
 
@@ -94,13 +80,10 @@ function main()
 
     light.shadow.camera.fov = 120;
     light.shadow.radius = 10;
-    // light.shadow.bias = 0.0001;
 	camera.add(light);
 
-    // added spotlight to enhance difference between texture and texture + normal
     innerLight = new THREE.SpotLight( 0xffffff, 2, undefined, Math.PI / 16, 0.6);
 	innerLight.position.set(0, 0, 0);
-    // light.shadow.bias = 0.0001;
 	light.add(innerLight);
 
     const lightTarget = new THREE.Object3D();
@@ -111,7 +94,24 @@ function main()
 
     const tLoader = new THREE.TextureLoader();
 
-    // // // //adding the bump to my material
+    const textureGrass = tLoader.load('./Assets/Textures/Grass002_2K_Color.png');
+    textureGrass.wrapS = THREE.RepeatWrapping;
+    textureGrass.wrapT = THREE.RepeatWrapping;
+    textureGrass.repeat.set(10, 10);
+
+    const grassNormal = tLoader.load('./Assets/Textures/Grass002_2K_NormalGL.png');
+    grassNormal.wrapS = THREE.RepeatWrapping;
+    grassNormal.wrapT = THREE.RepeatWrapping;
+    grassNormal.repeat.set(10, 10);
+
+
+    const planeGeo = new THREE.PlaneGeometry(1000, 1000);
+    const planeMat = new THREE.MeshStandardMaterial({ map: textureGrass, normalMap: grassNormal, normalScale: new Vector2(0.2, 0.2) });
+    const plane = new THREE.Mesh(planeGeo, planeMat);
+    plane.rotateX(-Math.PI / 2);
+    plane.receiveShadow = true;
+    //scene.add(plane);
+
     const textureBrick =  tLoader.load('./Assets/Textures/Bricks_Terracotta.jpg')
     const AOTexture = tLoader.load('./Assets/Textures/Bricks_Terracotta_002_ambientOcclusion.jpg');
     const bumpTexture = tLoader.load('./Assets/Textures/Bricks_Terracotta_002_height.png');
@@ -165,8 +165,8 @@ function main()
     scene.add(laser);
 
     laserLight = new THREE.PointLight();
-    laserLight.decay = 100;
-    laserLight.intensity = 1;
+    laserLight.distance = 10;
+    laserLight.intensity = 5;
     laserLight.color = new THREE.Color(1, 0, 0);
     laserLight.castShadow = true;
     laserLight.visible = false;
@@ -218,8 +218,6 @@ function render()
         const delta = clock.getDelta()
         controls.update(delta);
 
-        
-
         if (laserOn)
         {
             laserTimer += delta;
@@ -246,7 +244,7 @@ function render()
 
         qCube.update();
 
-        raycaster.setFromCamera(pointer, mainCamera);
+        raycaster.setFromCamera(pointer, activeCamera);
 
         if (selectedObj != null)
             selectedObj.material.color.set(0xffffff);
@@ -258,7 +256,10 @@ function render()
         else
             selectedObj = intersects[0].object;
 
-        renderer.render(scene, mainCamera);
+        renderer.render(scene, activeCamera);
+        
+        // fxComposer.addPass(new RenderPass(scene, activeCamera));
+        // fxComposer.render();
 
         requestAnimationFrame(render);
 }
@@ -281,12 +282,15 @@ function onPointerMove(event)
 
 function onPointerDown(event) 
 {
-    if (selectedObj != null)
+    if (selectedObj != null && !laserOn)
     {
         const obj = selectedObj;
         const objPos = getWorldPosition(obj);
-        const source = new Vector3()
-        source.addVectors(getWorldPosition(light), new Vector3(0, -1, -1));
+
+        // Source of beam must be slightly offset from underneath
+        //  the camera FOR SOME REASON otherwise it doesn't display
+        const source = new Vector3(0, 0, -0.1);
+        light.localToWorld(source);
         
         const dir = new Vector3();
         dir.subVectors(objPos, source).normalize();
@@ -316,18 +320,18 @@ function onKeyDown(event)
 {
     var keyCode = event.which;
     
-    if (keyCode == 113)
+    if (keyCode == 113) // F2 key
     {
         if (debug)
         {
-            mainCamera = camera;
+            activeCamera = camera;
             debug = false;
             helpers.map(function(e) { e.visible = false; });
             ambLight.intensity = 0.6;
         }
         else
         {
-            mainCamera = debugCam;
+            activeCamera = debugCam;
             debug = true;
             helpers.map(function(e) { e.visible = true; });
             ambLight.intensity = 2;
