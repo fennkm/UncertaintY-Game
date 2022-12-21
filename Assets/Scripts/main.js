@@ -2,14 +2,24 @@
 
 import * as THREE from 'three';
 import { Vector3, Vector2 } from 'three';
-import { TrackballControls } from 'three/examples/jsm/controls/TrackballControls.js';
-import { QuantumObject } from './QuantumObject.js'
+import { MeshLine, MeshLineMaterial } from 'ext/WebGL/MeshLine/MeshLine.js';
+import { FlyControls } from 'three/examples/jsm/controls/FlyControls.js';
+import { QuantumObject } from './QuantumObject.js';
 
-let light, camera, debugCam, cameraHolder, controls, scene, renderer, canvas, clock;
-var qCube;
+let scene;
+let renderer, canvas;
+let mainCamera, camera, debugCam, cameraHolder;
+let light, innerLight, ambLight;
+let controls, clock;
+let pointer, raycaster, laser, laserLight, selectedObj;
+let qCube;
 var cameraRot;
+var laserOn = false;
+var laserTimer = 0;
+const laserDuration = 1;
 
-const debug = false;
+var debug = false;
+var helpers;
 
 function main() 
 {
@@ -31,7 +41,9 @@ function main()
     cameraRot = 0;
   
     debugCam = new THREE.PerspectiveCamera(fov, aspect, near, far);
-    debugCam.position.set(0, 20, -10);
+    debugCam.position.set(0, 5, 0);
+
+    mainCamera = (debug ? debugCam : camera);
 
     cameraHolder = new THREE.Object3D();
     cameraHolder.position.set(0, 5, 0);
@@ -39,8 +51,7 @@ function main()
     scene.add(cameraHolder);
     cameraHolder.add(camera);
     
-    createControls( debugCam );
-    controls.update();
+    createControls(debugCam);
 
     const textureGrass = new THREE.TextureLoader().load('./Assets/Textures/Grass002_2K_Color.png');
     textureGrass.wrapS = THREE.RepeatWrapping;
@@ -59,14 +70,14 @@ function main()
     const plane = new THREE.Mesh( PlaneGeometry, planeMaterial );
     plane.rotateX(-Math.PI/2);
     plane.receiveShadow = true;
-    scene.add( plane );
+    //scene.add( plane );
 
     var ambLightIntensity;
     if (debug)
-        ambLightIntensity = 0.5
+        ambLightIntensity = 2 //0.5
     else
-        ambLightIntensity = 0.022
-    const ambLight = new THREE.AmbientLight( 0x404040, ambLightIntensity); // soft white light
+        ambLightIntensity = 0.6 //0.022
+    ambLight = new THREE.AmbientLight( 0x404040, ambLightIntensity); // soft white light
     scene.add( ambLight );
 
     // added spotlight to enhance difference between texture and texture + normal
@@ -87,7 +98,7 @@ function main()
 	camera.add(light);
 
     // added spotlight to enhance difference between texture and texture + normal
-    const innerLight = new THREE.SpotLight( 0xffffff, 2, undefined, Math.PI / 16, 0.6);
+    innerLight = new THREE.SpotLight( 0xffffff, 2, undefined, Math.PI / 16, 0.6);
 	innerLight.position.set(0, 0, 0);
     // light.shadow.bias = 0.0001;
 	light.add(innerLight);
@@ -106,9 +117,7 @@ function main()
     const bumpTexture = tLoader.load('./Assets/Textures/Bricks_Terracotta_002_height.png');
     const normalTexture = tLoader.load('./Assets/Textures/Bricks_Terracotta_002_normal.jpg');
     const roughTexture = tLoader.load('./Assets/Textures/Bricks_Terracotta_002_roughness.jpg');
-
-    const cubeMaterial = new THREE.MeshStandardMaterial({map: textureBrick, aoMap: AOTexture, roughnessMap: roughTexture, normalMap: normalTexture, bumpMap: bumpTexture});
-    
+ 
     const dist = 20;
     const size = 5;
     const num = 5;
@@ -117,7 +126,6 @@ function main()
 
     for (var i = 0; i < num; i++)
     {
-        
         const cube = createCube(
             size, 
             dist * Math.sin(i * 2 * Math.PI / num),
@@ -135,6 +143,7 @@ function main()
 
     function createCube(size, x, y, z, rx, ry, rz)
     {
+        const cubeMaterial = new THREE.MeshStandardMaterial({map: textureBrick, aoMap: AOTexture, roughnessMap: roughTexture, normalMap: normalTexture, bumpMap: bumpTexture});    
         const cubeGeo = new THREE.BoxGeometry(size, size, size);
         const cube = new THREE.Mesh(cubeGeo, cubeMaterial);
         cube.geometry.setAttribute('uv2', cube.geometry.getAttribute("uv"));
@@ -147,21 +156,46 @@ function main()
         return cube;
     }
 
-    if (debug)
-    {
-        scene.add(new THREE.SpotLightHelper(light));
-        scene.add(new THREE.SpotLightHelper(innerLight));
-        scene.add(new THREE.CameraHelper(camera));
+    raycaster = new THREE.Raycaster();
 
-        for (var i = 0; i < num; i++)
-        {
-            const arrowHelper = new THREE.ArrowHelper(new Vector3(0, 1, 0), cubes[i].position, 1);
-            scene.add(arrowHelper);
-        }
+    const laserMaterial = new MeshLineMaterial({ color: 0xff0000, lineWidth: 0.1, side: THREE.DoubleSide });
+    const laserLine = new MeshLine();
+    laser = new THREE.Mesh(laserLine, laserMaterial);
+    laser.visible = false;
+    scene.add(laser);
+
+    laserLight = new THREE.PointLight();
+    laserLight.decay = 100;
+    laserLight.intensity = 1;
+    laserLight.color = new THREE.Color(1, 0, 0);
+    laserLight.castShadow = true;
+    laserLight.visible = false;
+    scene.add(laserLight);
+
+    window.addEventListener("resize", onWindowResize);
+    onWindowResize();
+    
+    pointer = new Vector2();
+    window.addEventListener("pointermove", onPointerMove);
+    window.addEventListener("pointerdown", onPointerDown);
+
+    window.addEventListener("keydown", onKeyDown);
+
+    helpers = [new THREE.SpotLightHelper(light), new THREE.SpotLightHelper(innerLight), new THREE.CameraHelper(camera), new THREE.PointLightHelper(laserLight)]
+    scene.add(helpers[0]);
+    scene.add(helpers[1]);
+    scene.add(helpers[2]);
+    scene.add(helpers[3]);
+
+    for (var i = 0; i < num; i++)
+    {
+        const arrowHelper = new THREE.ArrowHelper(new Vector3(0, 1, 0), cubes[i].position, 1);
+        scene.add(arrowHelper);
+        helpers.push(arrowHelper);
     }
 
-    window.addEventListener( 'resize', onWindowResize );
-    onWindowResize();
+    if (!debug)
+        helpers.map(function(e) { e.visible = false; });
 
    requestAnimationFrame(render);
 }
@@ -181,48 +215,127 @@ function onWindowResize()
 
 function render() 
 {
-        controls.update();
-        cameraRot -= Math.PI / 8 * clock.getDelta();
-        cameraHolder.rotation.set(0, cameraRot, 0);
+        const delta = clock.getDelta()
+        controls.update(delta);
+
+        
+
+        if (laserOn)
+        {
+            laserTimer += delta;
+
+            if (laserTimer >= laserDuration)
+            {
+                laserTimer = 0;
+                laserOn = false;
+                laser.visible = false;
+                laserLight.visible = false;
+
+                light.visible = true;
+                innerLight.visible = true;
+            }
+        }
+        else
+        {
+            cameraRot -= Math.PI / 8 * delta;
+            cameraHolder.rotation.set(0, cameraRot, 0);
+        }
+
+        if (debug)
+            helpers.map(function(e) { if (e.geometry != null) e.geometry.computeBoundingBox(); });
 
         qCube.update();
 
-        // const lightPos = light.localToWorld(new Vector3(0, 0, 0));
-        // const lightTargetPoss = light.target.localToWorld(new Vector3(0, 0, 0));
-        // const lightToTarget = lightTargetPoss.add(lightPos.multiplyScalar(-1));
-        // const arrowHelper = new THREE.ArrowHelper(lightToTarget.clone().normalize(), light.localToWorld(new Vector3(0, 0, 0)), lightToTarget.length(), 0xffff00);
-        // scene.add(arrowHelper);
-        
-        if (debug)
-            renderer.render(scene, debugCam);
+        raycaster.setFromCamera(pointer, mainCamera);
+
+        if (selectedObj != null)
+            selectedObj.material.color.set(0xffffff);
+
+        const intersects = raycaster.intersectObjects(qCube.objs);
+
+        if (intersects[0] == null)
+            selectedObj = null;
         else
-            renderer.render(scene, camera);
+            selectedObj = intersects[0].object;
+
+        renderer.render(scene, mainCamera);
 
         requestAnimationFrame(render);
 }
 
 
-function createControls( camera ) {
+function createControls(camera) 
+{
+    controls = new FlyControls(camera, renderer.domElement);
 
-    controls = new TrackballControls( camera, renderer.domElement );
-
-    controls.rotateSpeed = 3.0;
-    controls.zoomSpeed = 2;
-    controls.panSpeed = 0.8;
-
-    //     This array holds keycodes for controlling interactions.
-
-// When the first defined key is pressed, all mouse interactions (left, middle, right) performs orbiting.
-// When the second defined key is pressed, all mouse interactions (left, middle, right) performs zooming.
-// When the third defined key is pressed, all mouse interactions (left, middle, right) performs panning.
-// Default is KeyA, KeyS, KeyD which represents A, S, D.
-    controls.keys = [ 'KeyA', 'KeyS', 'KeyD' ];
-
-
-
+    controls.dragToLook = true;
+    controls.movementSpeed = 10;
+    controls.rollSpeed = 0.5;
 }
 
-function getWorldPos(obj)
+function onPointerMove(event) 
+{
+	pointer.x = (event.clientX / window.innerWidth) * 2 - 1;
+	pointer.y = - (event.clientY / window.innerHeight) * 2 + 1;
+}
+
+function onPointerDown(event) 
+{
+    if (selectedObj != null)
+    {
+        const obj = selectedObj;
+        const objPos = getWorldPosition(obj);
+        const source = new Vector3()
+        source.addVectors(getWorldPosition(light), new Vector3(0, -1, -1));
+        
+        const dir = new Vector3();
+        dir.subVectors(objPos, source).normalize();
+        raycaster.set(source, dir);
+
+        const hitPoint = raycaster.intersectObject(obj)[0].point;
+
+        laser.geometry.setPoints([hitPoint, source]);
+        laser.geometry.computeBoundingSphere();
+        laser.visible = true;
+
+        const lightPoint = new Vector3();
+
+        lightPoint.subVectors(hitPoint, dir.clone().multiplyScalar(0.5));
+
+        laserLight.position.set(lightPoint.x, lightPoint.y, lightPoint.z);
+        laserLight.visible = true;
+
+        light.visible = false;
+        innerLight.visible = false;
+
+        laserOn = true;
+    }
+}
+
+function onKeyDown(event)
+{
+    var keyCode = event.which;
+    
+    if (keyCode == 113)
+    {
+        if (debug)
+        {
+            mainCamera = camera;
+            debug = false;
+            helpers.map(function(e) { e.visible = false; });
+            ambLight.intensity = 0.6;
+        }
+        else
+        {
+            mainCamera = debugCam;
+            debug = true;
+            helpers.map(function(e) { e.visible = true; });
+            ambLight.intensity = 2;
+        }
+    }
+};
+
+function getWorldPosition(obj)
 {
     return obj.localToWorld(new Vector3(0, 0, 0));
 }

@@ -27,7 +27,7 @@ export class QuantumObject
         this.activeObj = 0;
         this.switchReady = false;
 
-        this.objs.map(function(e) { e.visible = false; });
+        this.objs.map(function(e) { e.visible = true; });
         this.objs[this.activeObj].visible = true;
 
         this.invertZ = new THREE.Matrix4();
@@ -56,7 +56,7 @@ export class QuantumObject
             while (this.activeObj == prevPos || this.observed[this.activeObj])
                 this.activeObj = Math.floor(Math.random() * this.objs.length);
             
-            this.objs[prevPos].visible = false;
+            this.objs[prevPos].visible = true;
             this.objs[this.activeObj].visible = true;
             this.switchReady = false;
         }

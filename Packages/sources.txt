@@ -1,0 +1,6 @@
+WebGL/Common: Saad Bashir, Rossella Suma, Abhir Bhalerao & Shan Raza (University of Warwick DCS)
+
+WebGL/ThreeJS: https://github.com/mrdoob/three.js/
+
+WebGL/MeshLine: https://github.com/spite/THREE.MeshLine/
+    Modified by: https://github.com/Wil-KM/ (works as module)
