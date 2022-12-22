@@ -61,9 +61,9 @@ function main()
 
     var ambLightIntensity;
     if (debug)
-        ambLightIntensity = 2 //0.5
+        ambLightIntensity = 0.5
     else
-        ambLightIntensity = 0.6 //0.022
+        ambLightIntensity = 0.022
     ambLight = new THREE.AmbientLight( 0x404040, ambLightIntensity);
     scene.add( ambLight );
 
@@ -110,7 +110,7 @@ function main()
     const plane = new THREE.Mesh(planeGeo, planeMat);
     plane.rotateX(-Math.PI / 2);
     plane.receiveShadow = true;
-    //scene.add(plane);
+    scene.add(plane);
 
     const textureBrick =  tLoader.load('./Assets/Textures/Bricks_Terracotta.jpg')
     const AOTexture = tLoader.load('./Assets/Textures/Bricks_Terracotta_002_ambientOcclusion.jpg');
@@ -166,10 +166,9 @@ function main()
 
     laserLight = new THREE.PointLight();
     laserLight.distance = 10;
-    laserLight.intensity = 5;
+    laserLight.intensity = 0;
     laserLight.color = new THREE.Color(1, 0, 0);
     laserLight.castShadow = true;
-    laserLight.visible = false;
     scene.add(laserLight);
 
     window.addEventListener("resize", onWindowResize);
@@ -197,7 +196,7 @@ function main()
     if (!debug)
         helpers.map(function(e) { e.visible = false; });
 
-   requestAnimationFrame(render);
+    requestAnimationFrame(render);
 }
 
 
@@ -215,53 +214,57 @@ function onWindowResize()
 
 function render() 
 {
-        const delta = clock.getDelta()
-        controls.update(delta);
+    const delta = clock.getDelta()
+    controls.update(delta);
 
-        if (laserOn)
+    if (laserOn)
+    {
+        laserTimer += delta;
+
+        if (laserTimer >= laserDuration)
         {
-            laserTimer += delta;
+            laserTimer = 0;
+            laserOn = false;
+            laser.visible = false;
+            laserLight.intensity = 0;
 
-            if (laserTimer >= laserDuration)
-            {
-                laserTimer = 0;
-                laserOn = false;
-                laser.visible = false;
-                laserLight.visible = false;
-
-                light.visible = true;
-                innerLight.visible = true;
-            }
+            light.intensity = 1;
+            innerLight.intensity = 2;
         }
-        else
-        {
-            cameraRot -= Math.PI / 8 * delta;
-            cameraHolder.rotation.set(0, cameraRot, 0);
-        }
+    }
+    // else
+    // {
+        cameraRot -= Math.PI / 8 * delta;
+        cameraHolder.rotation.set(0, cameraRot, 0);
+    // }
 
-        if (debug)
-            helpers.map(function(e) { if (e.geometry != null) e.geometry.computeBoundingBox(); });
+    if (debug)
+        helpers.map(function(e) { if (e.geometry != null) e.geometry.computeBoundingBox(); });
 
-        qCube.update();
+    qCube.update();
 
-        raycaster.setFromCamera(pointer, activeCamera);
+    raycaster.setFromCamera(pointer, activeCamera);
 
-        if (selectedObj != null)
-            selectedObj.material.color.set(0xffffff);
+    if (selectedObj != null)
+        selectedObj.material.color.set(0xffffff);
+    
+    const intersects = raycaster.intersectObjects(qCube.objs);
 
-        const intersects = raycaster.intersectObjects(qCube.objs);
+    if (intersects[0] == null)
+        selectedObj = null;
+    else
+        selectedObj = intersects[0].object;
 
-        if (intersects[0] == null)
-            selectedObj = null;
-        else
-            selectedObj = intersects[0].object;
+    const s = performance.now();
+    renderer.render(scene, activeCamera);
+    const t = performance.now();
+    if (t - s > 10)
+        console.log(t - s);
+    
+    // fxComposer.addPass(new RenderPass(scene, activeCamera));
+    // fxComposer.render();
 
-        renderer.render(scene, activeCamera);
-        
-        // fxComposer.addPass(new RenderPass(scene, activeCamera));
-        // fxComposer.render();
-
-        requestAnimationFrame(render);
+    requestAnimationFrame(render);
 }
 
 
@@ -299,6 +302,7 @@ function onPointerDown(event)
         const hitPoint = raycaster.intersectObject(obj)[0].point;
 
         laser.geometry.setPoints([hitPoint, source]);
+
         laser.geometry.computeBoundingSphere();
         laser.visible = true;
 
@@ -307,10 +311,10 @@ function onPointerDown(event)
         lightPoint.subVectors(hitPoint, dir.clone().multiplyScalar(0.5));
 
         laserLight.position.set(lightPoint.x, lightPoint.y, lightPoint.z);
-        laserLight.visible = true;
+        laserLight.intensity = 5;
 
-        light.visible = false;
-        innerLight.visible = false;
+        light.intensity = 0;
+        innerLight.intensity = 0;
 
         laserOn = true;
     }
@@ -327,17 +331,17 @@ function onKeyDown(event)
             activeCamera = camera;
             debug = false;
             helpers.map(function(e) { e.visible = false; });
-            ambLight.intensity = 0.6;
+            ambLight.intensity = 0.022;
         }
         else
         {
             activeCamera = debugCam;
             debug = true;
             helpers.map(function(e) { e.visible = true; });
-            ambLight.intensity = 2;
+            ambLight.intensity = 0.5;
         }
     }
-};
+}
 
 function getWorldPosition(obj)
 {
