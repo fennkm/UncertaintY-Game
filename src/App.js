@@ -2,14 +2,14 @@
 
 import * as THREE from 'three';
 import { Vector3, Vector2 } from 'three';
-import * as PP from 'postprocessing';
 import { FlyControls } from 'three/examples/jsm/controls/FlyControls.js';
 import { QuantumObject } from './QuantumObject.js';
 import { Laser } from './Laser.js';
 import { Camera } from './Camera.js';
+import { RenderManager } from './RenderManager.js';
 
 let scene;
-let renderer, fxComposer, screenEffect;
+let renderManager;
 let activeCamera, camera, debugCam;
 let ambLight;
 let controls, clock;
@@ -23,16 +23,6 @@ class App
 {
 	init() 
 	{
-		const canvas = document.getElementById("gl-canvas");
-		renderer = new THREE.WebGLRenderer({ 
-			canvas: canvas,
-			powerPreference: "high-performance",
-			antialias: false,
-			stencil: false,
-			depth: false
-		});
-		renderer.shadowMap.enabled = true;
-		
 		scene = new THREE.Scene();
 		scene.background = new THREE.Color('black');
 
@@ -42,44 +32,17 @@ class App
 
 		camera = new Camera(scene, new Vector3(0, 20, 60), Math.PI / 12, 0, Math.PI / 2, Math.PI / 18);
 	
-		const fov = 45;
-		const aspect = 2;
-		const near = 0.1;
-		const far = 10000;
-		debugCam = new THREE.PerspectiveCamera(fov, aspect, near, far);
+		debugCam = new THREE.PerspectiveCamera(45, 2, 0.1, 10000);
 		debugCam.position.set(0, 5, 0);
 
 		activeCamera = (debug ? debugCam : camera.getCamera());
 
-		fxComposer = new PP.EffectComposer(renderer);
-
-		fxComposer.addPass(new PP.RenderPass(scene, activeCamera));
-
-		const noiseFX = new PP.NoiseEffect();
-		noiseFX.blendMode = new PP.BlendMode(PP.BlendFunction.ALPHA, 0.04);
-
-		const lineFX = new PP.ScanlineEffect({ density: 0.4 });
-		lineFX.blendMode = new PP.BlendMode(PP.BlendFunction.ALPHA, 0.004);
+		const canvas = document.getElementById("gl-canvas");
+		renderManager = new RenderManager(scene, canvas, activeCamera);
 		
-		const vignetteFX = new PP.VignetteEffect({ darkness: 1 });
-		vignetteFX.blendMode = new PP.BlendMode(PP.BlendFunction.ALPHA, 1);
+		createControls(debugCam, canvas);
 
-		screenEffect = new PP.EffectPass(activeCamera, 
-			noiseFX,
-			lineFX,
-			vignetteFX
-		);
-
-		fxComposer.addPass(screenEffect);
-		
-		createControls(debugCam);
-
-		var ambLightIntensity;
-		if (debug)
-			ambLightIntensity = 0.5
-		else
-			ambLightIntensity = 0.022
-		ambLight = new THREE.AmbientLight( 0x404040, ambLightIntensity);
+		ambLight = new THREE.AmbientLight( 0x404040, (debug ? 0.5 : 0022));
 		scene.add(ambLight);
 
 		const tLoader = new THREE.TextureLoader();
@@ -94,9 +57,8 @@ class App
 		grassNormal.wrapT = THREE.RepeatWrapping;
 		grassNormal.repeat.set(10, 10);
 
-		const planeGeo = new THREE.PlaneGeometry(1000, 1000);
 		const planeMat = new THREE.MeshStandardMaterial({ map: textureGrass, normalMap: grassNormal, normalScale: new Vector2(0.2, 0.2) });
-		const plane = new THREE.Mesh(planeGeo, planeMat);
+		const plane = new THREE.Mesh(new THREE.PlaneGeometry(1000, 1000), planeMat);
 		plane.rotateX(-Math.PI / 2);
 		plane.receiveShadow = true;
 		scene.add(plane);
@@ -106,7 +68,22 @@ class App
 		const bumpTexture = tLoader.load('../assets/textures/Bricks_Terracotta_002_height.png');
 		const normalTexture = tLoader.load('../assets/textures/Bricks_Terracotta_002_normal.jpg');
 		const roughTexture = tLoader.load('../assets/textures/Bricks_Terracotta_002_roughness.jpg');
-	
+
+		function createCube(size, x, y, z, rx, ry, rz)
+		{
+			const cubeMaterial = new THREE.MeshStandardMaterial({map: textureBrick, aoMap: AOTexture, roughnessMap: roughTexture, normalMap: normalTexture, bumpMap: bumpTexture});    
+			const cubeGeo = new THREE.BoxGeometry(size, size, size);
+			const cube = new THREE.Mesh(cubeGeo, cubeMaterial);
+			cube.geometry.setAttribute('uv2', cube.geometry.getAttribute("uv"));
+			cube.position.set(x, y, z);
+			cube.rotation.set(rx, ry, rz);
+			cube.castShadow = true;
+			cube.receiveShadow = true;
+			scene.add(cube);
+			cubeGeo.computeBoundingBox()
+			return cube;
+		}
+
 		const dist = 20;
 		const size = 5;
 		const num = 5;
@@ -129,21 +106,6 @@ class App
 		}
 
 		qCube = new QuantumObject(cubes, camera, Math.PI / 12);
-
-		function createCube(size, x, y, z, rx, ry, rz)
-		{
-			const cubeMaterial = new THREE.MeshStandardMaterial({map: textureBrick, aoMap: AOTexture, roughnessMap: roughTexture, normalMap: normalTexture, bumpMap: bumpTexture});    
-			const cubeGeo = new THREE.BoxGeometry(size, size, size);
-			const cube = new THREE.Mesh(cubeGeo, cubeMaterial);
-			cube.geometry.setAttribute('uv2', cube.geometry.getAttribute("uv"));
-			cube.position.set(x, y, z);
-			cube.rotation.set(rx, ry, rz);
-			cube.castShadow = true;
-			cube.receiveShadow = true;
-			scene.add(cube);
-			cubeGeo.computeBoundingBox()
-			return cube;
-		}
 
 		laser = new Laser(scene);
 
@@ -173,9 +135,7 @@ class App
 			helpers.map(function(e) { e.visible = false; });
 
 		requestAnimationFrame(render);
-
 	}
-
 }
 
 function onWindowResize()
@@ -187,7 +147,7 @@ function onWindowResize()
     camera.getCamera().updateProjectionMatrix();
     debugCam.updateProjectionMatrix();
 
-    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderManager.setRenderSize(window.innerWidth, window.innerHeight);
 }
 
 function render() 
@@ -212,10 +172,8 @@ function render()
         selectedObj = intersects[0].object;
 
     const s = performance.now();
-
-    // renderer.render(scene, activeCamera);
     
-    fxComposer.render();
+    renderManager.render();
 
     const t = performance.now();
     if (t - s > 10)
@@ -225,9 +183,9 @@ function render()
 }
 
 
-function createControls(camera) 
+function createControls(camera, canvas) 
 {
-    controls = new FlyControls(camera, renderer.domElement);
+    controls = new FlyControls(camera, canvas);
 
     controls.dragToLook = true;
     controls.movementSpeed = 10;
@@ -283,8 +241,8 @@ function onKeyDown(event)
             helpers.map(function(e) { e.visible = false; });
             ambLight.intensity = 0.022;
 
-			fxComposer.setMainCamera(activeCamera);
-			fxComposer.addPass(screenEffect);
+			renderManager.setCamera(activeCamera);
+			renderManager.setScreenFX(true);
         }
         else
         {
@@ -293,8 +251,8 @@ function onKeyDown(event)
             helpers.map(function(e) { e.visible = true; });
             ambLight.intensity = 0.5;
 
-			fxComposer.setMainCamera(activeCamera);
-			fxComposer.removePass(screenEffect);
+			renderManager.setCamera(activeCamera);
+			renderManager.setScreenFX(false);
         }
     }
 }
