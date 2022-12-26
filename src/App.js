@@ -42,7 +42,7 @@ class App
 		
 		createControls(debugCam, canvas);
 
-		ambLight = new THREE.AmbientLight( 0x404040, (debug ? 0.5 : 0022));
+		ambLight = new THREE.AmbientLight( 0x404040, (debug ? 0.5 : 0.022));
 		scene.add(ambLight);
 
 		const tLoader = new THREE.TextureLoader();
