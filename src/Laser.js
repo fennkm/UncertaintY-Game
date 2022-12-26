@@ -13,12 +13,15 @@ export class Laser
 
     active;
     laserAnimValues =   [false, true, false, true, false, true, false, true];
-    lightAnimValues =   [    0,    5,     0,    5,     0,    5,     0, 5];
-    animTimes =         [  0.0,  1.5,   1.6,  1.7,  1.8,   2.1,   4.1, 5.1];
+    lightAnimValues =   [    0,    5,     0,    5,     0,    5,     0,    5];
+    animTimes =         [  0.0,  1.5,  1.55,  1.65,  1.7,  2.2,   5.2,  6.2];
+    lightFlickerAnimValues = [10,    12];
+    lightFlickerAnimTimes =  [0,   0.02];
     laserAnimMixer;
     lightAnimMixer;
     laserAnimAction;
     lightAnimAction;
+    lightFlickerAnimAction
 
     currentCallback;
     visible;
@@ -44,9 +47,11 @@ export class Laser
 
         const laserKeyFrames = new THREE.BooleanKeyframeTrack(".visible", this.animTimes, this.laserAnimValues, THREE.InterpolateDiscrete);
         const lightKeyFrames = new THREE.NumberKeyframeTrack(".intensity", this.animTimes, this.lightAnimValues, THREE.InterpolateDiscrete);
+        const lightFlickerKeyFrames = new THREE.NumberKeyframeTrack(".distance", this.lightFlickerAnimTimes, this.lightFlickerAnimValues, THREE.InterpolateLinear)
 
         const laserClip = new THREE.AnimationClip("fireLaser", -1, [laserKeyFrames]);
         const lightClip = new THREE.AnimationClip("fireLaser", -1, [lightKeyFrames]);
+        const flickerClip = new THREE.AnimationClip("laserFlicker", -1, [lightFlickerKeyFrames]);
         
         this.laserAnimMixer = new THREE.AnimationMixer(this.laser);
         this.lightAnimMixer = new THREE.AnimationMixer(this.laserLight);
@@ -56,6 +61,8 @@ export class Laser
 
         this.lightAnimAction = this.lightAnimMixer.clipAction(lightClip);
         this.lightAnimAction.setLoop(THREE.LoopOnce, 1);
+
+        this.lightFlickerAnimAction = this.lightAnimMixer.clipAction(flickerClip);
     }
 
     update()
@@ -85,13 +92,14 @@ export class Laser
             
             this.laserLight.position.set(lightPoint.x, lightPoint.y, lightPoint.z);
             
-            this.currentCallback = () => { this.active = false; callback(); };
+            this.currentCallback = () => { this.active = false; this.lightFlickerAnimAction.stop(); callback(); };
             this.laserAnimMixer.addEventListener("finished", this.currentCallback);
 
             this.laserAnimAction.reset();
             this.lightAnimAction.reset();
             
             this.lightAnimAction.play();
+            this.lightFlickerAnimAction.play();
             this.laserAnimAction.play();
         }
     }
