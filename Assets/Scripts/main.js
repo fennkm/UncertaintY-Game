@@ -5,22 +5,17 @@ import { Vector3, Vector2 } from 'three';
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { FlyControls } from 'three/examples/jsm/controls/FlyControls.js';
-import { MeshLine, MeshLineMaterial } from 'ext/WebGL/MeshLine/MeshLine.js';
 import { QuantumObject } from './QuantumObject.js';
+import { Laser } from './Laser.js';
+import { Camera } from './Camera.js';
 
 let scene;
 let renderer, canvas, fxComposer;
-let activeCamera, camera, debugCam, cameraHolder;
-let light, innerLight, ambLight;
+let activeCamera, camera, debugCam;
+let ambLight;
 let controls, clock;
-let pointer, raycaster, laser, laserLight, selectedObj;
+let pointer, raycaster, laser, selectedObj;
 let qCube;
-
-var cameraRot;
-
-var laserOn = false;
-var laserTimer = 0;
-const laserDuration = 1;
 
 var debug = false;
 var helpers;
@@ -30,32 +25,26 @@ function main()
     canvas = document.getElementById("gl-canvas");
     renderer = new THREE.WebGLRenderer({ canvas });
     renderer.shadowMap.enabled = true;
-
-    clock = new THREE.Clock();
     
     scene = new THREE.Scene();
     scene.background = new THREE.Color('black');
 
+    clock = new THREE.Clock();
+
+    raycaster = new THREE.Raycaster();
+
     fxComposer = new EffectComposer(renderer);
+  
+    camera = new Camera(scene);
   
     const fov = 45;
     const aspect = 2;
     const near = 0.1;
     const far = 10000;
-    camera = new THREE.PerspectiveCamera(fov, aspect, near, far);
-    camera.rotation.set(0, 0, 0);
-    cameraRot = 0;
-  
     debugCam = new THREE.PerspectiveCamera(fov, aspect, near, far);
     debugCam.position.set(0, 5, 0);
 
-    activeCamera = (debug ? debugCam : camera);
-
-    cameraHolder = new THREE.Object3D();
-    cameraHolder.position.set(0, 5, 0);
-
-    scene.add(cameraHolder);
-    cameraHolder.add(camera);
+    activeCamera = (debug ? debugCam : camera.getCamera());
     
     createControls(debugCam);
 
@@ -65,32 +54,7 @@ function main()
     else
         ambLightIntensity = 0.022
     ambLight = new THREE.AmbientLight( 0x404040, ambLightIntensity);
-    scene.add( ambLight );
-
-    light = new THREE.SpotLight( 0xddddff, 1, undefined, Math.PI / 12, 0.2);
-	light.position.set(0, -1, 0);
-
-    light.castShadow = true;
-
-    light.shadow.mapSize.width = 1024;
-    light.shadow.mapSize.height = 1024;
-
-    light.shadow.camera.near = 1;
-    light.shadow.camera.far = 1000;
-
-    light.shadow.camera.fov = 120;
-    light.shadow.radius = 10;
-	camera.add(light);
-
-    innerLight = new THREE.SpotLight( 0xffffff, 2, undefined, Math.PI / 16, 0.6);
-	innerLight.position.set(0, 0, 0);
-	light.add(innerLight);
-
-    const lightTarget = new THREE.Object3D();
-    lightTarget.position.set(0, 0, -1);
-    light.add(lightTarget);
-    light.target = lightTarget;
-    innerLight.target = lightTarget;
+    scene.add(ambLight);
 
     const tLoader = new THREE.TextureLoader();
 
@@ -103,7 +67,6 @@ function main()
     grassNormal.wrapS = THREE.RepeatWrapping;
     grassNormal.wrapT = THREE.RepeatWrapping;
     grassNormal.repeat.set(10, 10);
-
 
     const planeGeo = new THREE.PlaneGeometry(1000, 1000);
     const planeMat = new THREE.MeshStandardMaterial({ map: textureGrass, normalMap: grassNormal, normalScale: new Vector2(0.2, 0.2) });
@@ -139,7 +102,7 @@ function main()
         cubes.push(cube);
     }
 
-    qCube = new QuantumObject(cubes, camera, light, Math.PI / 12);
+    qCube = new QuantumObject(cubes, camera, Math.PI / 12);
 
     function createCube(size, x, y, z, rx, ry, rz)
     {
@@ -156,20 +119,7 @@ function main()
         return cube;
     }
 
-    raycaster = new THREE.Raycaster();
-
-    const laserMaterial = new MeshLineMaterial({ color: 0xff0000, lineWidth: 0.1, side: THREE.DoubleSide });
-    const laserLine = new MeshLine();
-    laser = new THREE.Mesh(laserLine, laserMaterial);
-    laser.visible = false;
-    scene.add(laser);
-
-    laserLight = new THREE.PointLight();
-    laserLight.distance = 10;
-    laserLight.intensity = 0;
-    laserLight.color = new THREE.Color(1, 0, 0);
-    laserLight.castShadow = true;
-    scene.add(laserLight);
+    laser = new Laser(scene);
 
     window.addEventListener("resize", onWindowResize);
     onWindowResize();
@@ -180,7 +130,7 @@ function main()
 
     window.addEventListener("keydown", onKeyDown);
 
-    helpers = [new THREE.SpotLightHelper(light), new THREE.SpotLightHelper(innerLight), new THREE.CameraHelper(camera), new THREE.PointLightHelper(laserLight)]
+    helpers = [new THREE.SpotLightHelper(camera.light), new THREE.SpotLightHelper(camera.innerLight), new THREE.CameraHelper(camera.camera), new THREE.PointLightHelper(laser.laserLight)]
     scene.add(helpers[0]);
     scene.add(helpers[1]);
     scene.add(helpers[2]);
@@ -204,9 +154,9 @@ function onWindowResize()
 {
     const aspect = window.innerWidth / window.innerHeight;
 
-    camera.aspect = aspect;
+    camera.getCamera().aspect = aspect;
     debugCam.aspect = aspect;
-    camera.updateProjectionMatrix();
+    camera.getCamera().updateProjectionMatrix();
     debugCam.updateProjectionMatrix();
 
     renderer.setSize(window.innerWidth, window.innerHeight);
@@ -217,31 +167,9 @@ function render()
     const delta = clock.getDelta()
     controls.update(delta);
 
-    if (laserOn)
-    {
-        laserTimer += delta;
-
-        if (laserTimer >= laserDuration)
-        {
-            laserTimer = 0;
-            laserOn = false;
-            laser.visible = false;
-            laserLight.intensity = 0;
-
-            light.intensity = 1;
-            innerLight.intensity = 2;
-        }
-    }
-    // else
-    // {
-        cameraRot -= Math.PI / 8 * delta;
-        cameraHolder.rotation.set(0, cameraRot, 0);
-    // }
-
-    if (debug)
-        helpers.map(function(e) { if (e.geometry != null) e.geometry.computeBoundingBox(); });
-
     qCube.update();
+    laser.update();
+    camera.update();
 
     raycaster.setFromCamera(pointer, activeCamera);
 
@@ -259,7 +187,7 @@ function render()
     renderer.render(scene, activeCamera);
     const t = performance.now();
     if (t - s > 10)
-        console.log(t - s);
+        console.log("Slow render frame!");
     
     // fxComposer.addPass(new RenderPass(scene, activeCamera));
     // fxComposer.render();
@@ -285,7 +213,7 @@ function onPointerMove(event)
 
 function onPointerDown(event) 
 {
-    if (selectedObj != null && !laserOn)
+    if (selectedObj != null && !laser.isActive() && !camera.isAnimating())
     {
         const obj = selectedObj;
         const objPos = getWorldPosition(obj);
@@ -293,7 +221,7 @@ function onPointerDown(event)
         // Source of beam must be slightly offset from underneath
         //  the camera FOR SOME REASON otherwise it doesn't display
         const source = new Vector3(0, 0, -0.1);
-        light.localToWorld(source);
+        camera.getLight().localToWorld(source);
         
         const dir = new Vector3();
         dir.subVectors(objPos, source).normalize();
@@ -301,22 +229,15 @@ function onPointerDown(event)
 
         const hitPoint = raycaster.intersectObject(obj)[0].point;
 
-        laser.geometry.setPoints([hitPoint, source]);
-
-        laser.geometry.computeBoundingSphere();
-        laser.visible = true;
-
-        const lightPoint = new Vector3();
-
-        lightPoint.subVectors(hitPoint, dir.clone().multiplyScalar(0.5));
-
-        laserLight.position.set(lightPoint.x, lightPoint.y, lightPoint.z);
-        laserLight.intensity = 5;
-
-        light.intensity = 0;
-        innerLight.intensity = 0;
-
-        laserOn = true;
+        camera.setMoving(false);
+        
+        camera.lightOff(() => { 
+            laser.fire(source, hitPoint, () => { 
+                camera.lightOn(() => { 
+                    camera.setMoving(true); 
+                }); 
+            }); 
+        });
     }
 }
 
@@ -328,7 +249,7 @@ function onKeyDown(event)
     {
         if (debug)
         {
-            activeCamera = camera;
+            activeCamera = camera.camera;
             debug = false;
             helpers.map(function(e) { e.visible = false; });
             ambLight.intensity = 0.022;

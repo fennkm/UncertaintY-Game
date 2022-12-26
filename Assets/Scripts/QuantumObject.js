@@ -5,6 +5,8 @@ import { Vector3, Matrix4, Box3 } from 'three';
 
 export class QuantumObject
 {
+    light;
+
     observed;
     boundingBoxes;
 
@@ -14,13 +16,13 @@ export class QuantumObject
     invertZ;
     sceneToView;
 
-    constructor(objs, camera, light, visionAngle)
+    constructor(objs, camera, visionAngle)
     {
         this.objs = objs;
         this.boundingBoxes = objs.map(function(e) { return e.geometry.boundingBox; });
 
         this.camera = camera;
-        this.light = light;
+        this.light = camera.getLight();
         this.visionAngle = visionAngle;
         
         this.observed = [false * objs.length];
@@ -45,7 +47,12 @@ export class QuantumObject
         this.sceneToView.multiplyMatrices(this.light.matrixWorld, this.invertZ).invert();
 
         for (var i = 0; i < this.objs.length; i++)
-            this.observed[i] = this.boxConeIntersect(this.objs[i], this.boundingBoxes[i]);
+        {
+            if (this.camera.getLightVisibility())
+                this.observed[i] = this.boxConeIntersect(this.objs[i], this.boundingBoxes[i]);
+            else
+                this.observed[i] = false;
+        }
 
         if (!this.switchReady && this.observed[this.activeObj])
             this.switchReady = true;
@@ -171,8 +178,8 @@ export class QuantumObject
             && a <= 1
             && b >= 0
             && b <= 1
-            && M.z >= this.camera.near
-            && M.z <= this.camera.far;
+            && M.z >= this.camera.getCamera().near
+            && M.z <= this.camera.getCamera().far;
     }
 
     lineConeIntersection(p, u)
@@ -199,15 +206,15 @@ export class QuantumObject
             const z1 = p.z + t1 * u.z;
             const z2 = p.z + t2 * u.z;
 
-            return (t1 >= 0 && t1 <= 1 && z1 >= this.camera.near && z1 <= this.camera.far)
-                || (t2 >= 0 && t2 <= 1 && z2 >= this.camera.near && z2 <= this.camera.far);
+            return (t1 >= 0 && t1 <= 1 && z1 >= this.camera.getCamera().near && z1 <= this.camera.getCamera().far)
+                || (t2 >= 0 && t2 <= 1 && z2 >= this.camera.getCamera().near && z2 <= this.camera.getCamera().far);
         }
         if (B != 0)
         {
             const t = -C / B;
             const z = p.z + t * u.z;
 
-            return t1 >= 0 && t1 <= 1 && z1 >= this.camera.near && z1 <= this.camera.far;
+            return t1 >= 0 && t1 <= 1 && z1 >= this.camera.getCamera().near && z1 <= this.camera.getCamera().far;
         }
         else return C == 0;
     }
