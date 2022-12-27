@@ -30,7 +30,7 @@ class App
 
 		raycaster = new THREE.Raycaster();
 
-		camera = new Camera(scene, new Vector3(0, 20, 60), Math.PI / 12, 0, Math.PI / 2, Math.PI / 18);
+		camera = new Camera(scene, new Vector3(0, 20, 0), Math.PI / 12, 0, Math.PI / 2, Math.PI / 18);
 	
 		debugCam = new THREE.PerspectiveCamera(45, 2, 0.1, 10000);
 		debugCam.position.set(0, 5, 0);
@@ -63,7 +63,7 @@ class App
 		plane.receiveShadow = true;
 		scene.add(plane);
 
-		const textureBrick =  tLoader.load('../assets/textures/Bricks_Terracotta.jpg')
+		const textureBrick =  tLoader.load('../assets/textures/Bricks_Terracotta.jpg');
 		const AOTexture = tLoader.load('../assets/textures/Bricks_Terracotta_002_ambientOcclusion.jpg');
 		const bumpTexture = tLoader.load('../assets/textures/Bricks_Terracotta_002_height.png');
 		const normalTexture = tLoader.load('../assets/textures/Bricks_Terracotta_002_normal.jpg');
@@ -80,13 +80,14 @@ class App
 			cube.castShadow = true;
 			cube.receiveShadow = true;
 			scene.add(cube);
-			cubeGeo.computeBoundingBox()
+			cubeGeo.computeBoundingBox();
 			return cube;
 		}
 
-		const dist = 20;
+		const field = Math.PI / 2;
+		const dist = 60;
 		const size = 5;
-		const num = 5;
+		const num = 14;
 
 		var cubes = [];
 
@@ -94,18 +95,18 @@ class App
 		{
 			const cube = createCube(
 				size, 
-				dist * Math.sin(i * 2 * Math.PI / num),
+				-dist * Math.sin((field / 2) * (2 * i / (num - 1) - 1)),
 				2.5,
-				-dist * Math.cos(i * 2 * Math.PI / num),
+				-dist * Math.cos((field / 2) * (2 * i / (num - 1) - 1)),
 				0,
-				-i * Math.PI * Math.PI / num + 1,
+				-i * 2 + 1,
 				0
 			);
 
 			cubes.push(cube);
 		}
 
-		qCube = new QuantumObject(cubes, camera, Math.PI / 12);
+		qCube = new QuantumObject(cubes, camera);
 
 		laser = new Laser(scene);
 
@@ -160,9 +161,6 @@ function render()
     camera.update();
 
     raycaster.setFromCamera(pointer, activeCamera);
-
-    if (selectedObj != null)
-        selectedObj.material.color.set(0xffffff);
     
     const intersects = raycaster.intersectObjects(qCube.objs);
 
@@ -255,6 +253,12 @@ function onKeyDown(event)
 			renderManager.setScreenFX(false);
         }
     }
+	else if (keyCode == 115)
+	{
+		const pos = getWorldPosition(camera.getLight());
+		debugCam.position.set(pos.x, pos.y, pos.z);
+		debugCam.rotation.set(-Math.PI / 12, 0, 0);
+	}
 }
 
 function getWorldPosition(obj)

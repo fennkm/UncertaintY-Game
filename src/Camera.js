@@ -36,11 +36,7 @@ export class Camera
     {
         this.scene = scene;
 
-        const viewFov = 45;
-        const aspect = 2;
-        const near = 0.1;
-        const far = 10000;
-        this.camera = new THREE.PerspectiveCamera(viewFov, aspect, near, far);
+        this.camera = new THREE.PerspectiveCamera(45, 2, 0.1, 10000);
 
         this.angleOffset = 0;
         this.rotationSpeed = rotationSpeed;
@@ -194,7 +190,7 @@ export class Camera
         this.innerLight.intensity = (val ? 2 : 0);
     }
 
-    getLightVisibility() { return this.lightVisible; }
+    getLightVisibility() { return this.light.intensity > 0; }
 
     isAnimating() { return this.animating; }
 
