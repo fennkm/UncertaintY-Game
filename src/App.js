@@ -119,11 +119,9 @@ class App
 
 		window.addEventListener("keydown", onKeyDown);
 
-		helpers = [new THREE.SpotLightHelper(camera.light), new THREE.SpotLightHelper(camera.innerLight), new THREE.CameraHelper(camera.camera), new THREE.PointLightHelper(laser.laserLight)]
-		scene.add(helpers[0]);
-		scene.add(helpers[1]);
-		scene.add(helpers[2]);
-		scene.add(helpers[3]);
+		helpers = [new THREE.SpotLightHelper(camera.light), new THREE.SpotLightHelper(camera.innerLight), new THREE.CameraHelper(camera.camera), new THREE.PointLightHelper(laser.laserLight), new THREE.SpotLightHelper(laser.laserPointer)];
+		
+		helpers.map((e) => { scene.add(e); });
 
 		for (var i = 0; i < num; i++)
 		{
