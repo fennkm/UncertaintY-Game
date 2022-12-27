@@ -1,19 +1,21 @@
 "use strict";
 
 import * as THREE from 'three';
-import { Vector3 } from 'three';
+import { Object3D, Vector3 } from 'three';
 import { MeshLine, MeshLineMaterial } from 'three.meshline';
 
 export class Laser
 {
     laser;
     laserLight;
+    laserPointer;
+    laserPointerTarget;
 
     clock;
 
     active;
-    laserAnimValues =   [false, true, false, true, false, true, false, true];
-    lightAnimValues =   [    0,    5,     0,    5,     0,    5,     0,    5];
+    laserAnimValues =   [false, true, false, true, false, true, false, false];
+    lightAnimValues =   [    0,    5,     0,    5,     0,    5,     0,    0];
     animTimes =         [  0.0,  1.5,  1.55,  1.65,  1.7,  2.2,   5.2,  6.2];
     lightFlickerAnimValues = [10,    12];
     lightFlickerAnimTimes =  [0,   0.02];
@@ -21,7 +23,7 @@ export class Laser
     lightAnimMixer;
     laserAnimAction;
     lightAnimAction;
-    lightFlickerAnimAction
+    lightFlickerAnimAction;
 
     currentCallback;
     visible;
@@ -31,8 +33,7 @@ export class Laser
         this.scene = scene;
 
         const laserMaterial = new MeshLineMaterial({ color: 0xff0000, lineWidth: 0.1, side: THREE.DoubleSide });
-        const laserLine = new MeshLine();
-        this.laser = new THREE.Mesh(laserLine, laserMaterial);
+        this.laser = new THREE.Mesh(new MeshLine(), laserMaterial);
         this.laser.visible = false;
         scene.add(this.laser);
 
@@ -43,12 +44,32 @@ export class Laser
         this.laserLight.castShadow = true;
         scene.add(this.laserLight);
 
+        this.laserPointer = new THREE.SpotLight(0xff0000, 0, undefined, Math.PI / 12);
+
+        this.laserPointer.intensity = 0;
+        this.laserPointer.castShadow = true;
+    
+        this.laserPointer.shadow.mapSize.width = 1024;
+        this.laserPointer.shadow.mapSize.height = 1024;
+    
+        this.laserPointer.shadow.camera.near = 1;
+        this.laserPointer.shadow.camera.far = 1000;
+    
+        this.laserPointer.shadow.camera.fov = 15;
+
+        this.laserPointerTarget = new Object3D();
+
+        this.laserPointer.target = this.laserPointerTarget;
+
+        scene.add(this.laserPointer);
+        scene.add(this.laserPointerTarget);
+
         this.clock = new THREE.Clock();
 
         const laserKeyFrames = new THREE.BooleanKeyframeTrack(".visible", this.animTimes, this.laserAnimValues, THREE.InterpolateDiscrete);
         const lightKeyFrames = new THREE.NumberKeyframeTrack(".intensity", this.animTimes, this.lightAnimValues, THREE.InterpolateDiscrete);
-        const lightFlickerKeyFrames = new THREE.NumberKeyframeTrack(".distance", this.lightFlickerAnimTimes, this.lightFlickerAnimValues, THREE.InterpolateLinear)
-
+        const lightFlickerKeyFrames = new THREE.NumberKeyframeTrack(".distance", this.lightFlickerAnimTimes, this.lightFlickerAnimValues, THREE.InterpolateLinear);
+    
         const laserClip = new THREE.AnimationClip("fireLaser", -1, [laserKeyFrames]);
         const lightClip = new THREE.AnimationClip("fireLaser", -1, [lightKeyFrames]);
         const flickerClip = new THREE.AnimationClip("laserFlicker", -1, [lightFlickerKeyFrames]);
@@ -91,8 +112,12 @@ export class Laser
             lightPoint.subVectors(targetPos, dir.clone().multiplyScalar(0.5));
             
             this.laserLight.position.set(lightPoint.x, lightPoint.y, lightPoint.z);
+            this.laserPointer.position.set(lightPoint.x, lightPoint.y, lightPoint.z);
+            this.laserPointerTarget.position.set(targetPos.x, targetPos.y, targetPos.z);
+
+            this.laserPointer.intensity = 5;
             
-            this.currentCallback = () => { this.active = false; this.lightFlickerAnimAction.stop(); callback(); };
+            this.currentCallback = () => { this.active = false; this.laserPointer.intensity = 0; this.lightFlickerAnimAction.stop(); callback(); };
             this.laserAnimMixer.addEventListener("finished", this.currentCallback);
 
             this.laserAnimAction.reset();
