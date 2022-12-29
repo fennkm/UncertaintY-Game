@@ -151,6 +151,8 @@ function onWindowResize()
 
 function render() 
 {
+	const a = performance.now();
+
     const delta = clock.getDelta()
     controls.update(delta);
 
@@ -167,15 +169,23 @@ function render()
     else
         selectedObj = intersects[0].object;
 
-    const s = performance.now();
+    const b = performance.now();
     
     renderManager.render();
 
-    const t = performance.now();
-    if (t - s > 10)
-        console.log("Slow render frame!");
-
+    const c = performance.now();
+	
     requestAnimationFrame(render);
+	
+    const d = performance.now();
+	
+    if (delta * 1000 > 5) // Falls below 20 fps
+        console.log("Slow frame! " +
+		(b - a) + "ms to compute, " +
+		(c - b) + "ms to render, " +
+		(d - c) + "ms to next frame, " + 
+		(d - a) + "ms total, " + 
+		delta * 1000 + "ms delta time.");
 }
 
 
