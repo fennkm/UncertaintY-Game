@@ -10,7 +10,7 @@
   "author": "Mugen87",
   "license": "MIT",
   "dependencies": {
-    "postprocessing": "^6.29.1",
+    "postprocessing": "^6.29.2",
     "three": "^0.144.0",
     "three.meshline": "^1.4.0"
   },
