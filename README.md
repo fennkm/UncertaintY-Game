@@ -1,8 +1,9 @@
-# three-jsm
-Simple project example using the ES6 modules of three.js.
+#Untitled Surveillance Game
 
----
+To install additional dependencies, run `npm install`.
 
-After downloading the repository, execute `npm install` once in the root directory to install all dependencies.
+To build source files, run `npm run build`.
 
-You can then start a local server by using `npm start` and open `http://localhost:3000/app/` for testing.
+To play, run `npm start` and navigate to http://localhost:3000/app.
+
+Using [Three.js with Node.js Template by Mugen87](https://github.com/Mugen87/three-jsm)
