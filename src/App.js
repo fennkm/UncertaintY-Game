@@ -160,7 +160,7 @@ function render()
 
     raycaster.setFromCamera(pointer, activeCamera);
     
-    const intersects = raycaster.intersectObjects(qCube.objs);
+    const intersects = raycaster.intersectObject(qCube.getActiveObj());
 
     if (intersects[0] == null)
         selectedObj = null;
@@ -213,9 +213,11 @@ function onPointerDown(event)
         const hitPoint = raycaster.intersectObject(obj)[0].point;
 
         camera.setMoving(false);
+		qCube.setMoving (false);
         
         camera.lightOff(() => { 
             laser.fire(source, hitPoint, () => { 
+				qCube.setMoving(true);
                 camera.lightOn(() => { 
                     camera.setMoving(true); 
                 }); 

@@ -17,6 +17,9 @@ export class QuantumObject
     sceneToView;
     viewToClip;
 
+    moving;
+    active;
+
     constructor(objs, camera)
     {
         this.objs = objs;
@@ -24,12 +27,15 @@ export class QuantumObject
 
         this.camera = camera;
         this.light = camera.getLight();
+
+        this.active = true;
         
         this.observed = [false * objs.length];
+        this.moving = true;
         this.activeObj = 0;
         this.switchReady = false;
 
-        this.objs.map(function(e) { e.visible = true; });
+        this.objs.map(function(e) { e.visible = false; });
         this.objs[this.activeObj].visible = true;
 
         this.invertZ = new THREE.Matrix4();
@@ -67,19 +73,19 @@ export class QuantumObject
             //     this.objs[i].material.color = new THREE.Color("white");
         }
 
-        // if (!this.switchReady && this.observed[this.activeObj])
-        //     this.switchReady = true;
+        if(this.moving && !this.switchReady && this.observed[this.activeObj])
+            this.switchReady = true;
  
-        // if (this.switchReady && !this.observed[this.activeObj])
-        // {
-        //     var prevPos = this.activeObj;
-        //     while (this.activeObj == prevPos || this.observed[this.activeObj])
-        //         this.activeObj = Math.floor(Math.random() * this.objs.length);
+        if (this.moving && this.switchReady && !this.observed[this.activeObj])
+        {
+            var prevPos = this.activeObj;
+            while (this.activeObj == prevPos || this.observed[this.activeObj])
+                this.activeObj = Math.floor(Math.random() * this.objs.length);
             
-        //     this.objs[prevPos].visible = false;
-        //     this.objs[this.activeObj].visible = true;
-        //     this.switchReady = false;
-        // }
+            this.objs[prevPos].visible = false;
+            this.objs[this.activeObj].visible = true;
+            this.switchReady = false;
+        }
     }
 
     // NOTE: DOES NOT COVER ALL CASES, OBJECTS CONSIDERED INVISIBLE IF ONE VERTEX IS BEHIND THE
@@ -116,9 +122,6 @@ export class QuantumObject
             else
                 e.applyMatrix4(this.viewToClip);
         });
-
-        const lowVec = new Vector3(low.x,  low.y,  low.z );
-        const highVec = new Vector3(high.x, high.y, high.z);
         
         const lines = [
             [verts[0], verts[1]],
@@ -175,4 +178,18 @@ export class QuantumObject
 
         return new Vector2(p.x, p.y).length() <= r;
     }
+
+    setMoving(val)
+    {
+        this.moving = val;
+    }
+
+    setActive(val)
+    {
+        this.setMoving(val);
+
+        this.objs[this.activeObj].visible = val;
+    }
+
+    getActiveObj() { return this.objs[this.activeObj]; }
 }
