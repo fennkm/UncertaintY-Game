@@ -51,7 +51,7 @@ export class QuantumObject
 
         const n = 1 / this.camera.getCamera().near;
         this.viewToClip.set(    1, 0, 0, 0,
-                                0, 1, 0, 0, 
+                                0, 1, 0, 0,
                                 0, 0, 1, 0,
                                 0, 0, n, 0);
     }

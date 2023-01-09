@@ -66,7 +66,7 @@ class App
 				onFinishLoad();
 			},
 			(xhr) => {
-				console.log(xhr.loaded + "/161974324 loaded");
+				console.log(xhr.loaded + "/161974328 loaded");
 			},
 			(error) => {
 				console.log(error);
@@ -82,10 +82,9 @@ function onFinishLoad()
 		cameras[0], 
 		cameraPitchControllers[0],
 		cameraYawControllers[0],
-		Math.PI / 10, 
-		-Math.PI / 4,
-		[[10, -15], [10, -87], [35, -87], [10, -87]],
-		Math.PI / 12
+		[[10, -5], [10, -90], [35, -90], [35, -5]],
+		Math.PI / 24,
+		0.3
 	);
 	
 	debugCam = new THREE.PerspectiveCamera(45, 2, 0.1, 10000);
@@ -188,9 +187,6 @@ function onPointerDown(event)
         const dir = new Vector3();
         dir.subVectors(objPos, source).normalize();
         raycaster.set(source, dir);
-		
-		console.log(obj);
-		console.log(raycaster.intersectObject(obj));
 
         const hitPoint = selection.point;
 		

@@ -15,9 +15,9 @@ export class Laser
 
     active;
     laserAnimValues =   [false, true, false, true, false, true, false, false];
-    lightAnimValues =   [    0,    5,     0,    5,     0,    5,     0,    0];
+    lightAnimValues =   [    0,    10,     0,    10,     0,    10,     0,    0];
     animTimes =         [  0.0,  1.5,  1.55,  1.65,  1.7,  2.2,   5.2,  6.2];
-    lightFlickerAnimValues = [10,    12];
+    lightFlickerAnimValues = [10,    11];
     lightFlickerAnimTimes =  [0,   0.02];
     laserAnimMixer;
     lightAnimMixer;
@@ -32,7 +32,7 @@ export class Laser
     {
         this.scene = scene;
 
-        const laserMaterial = new MeshLineMaterial({ color: 0xff0000, lineWidth: 0.1, side: THREE.DoubleSide });
+        const laserMaterial = new MeshLineMaterial({ color: 0xff0000, lineWidth: 0.05, side: THREE.DoubleSide });
         this.laser = new THREE.Mesh(new MeshLine(), laserMaterial);
         this.laser.visible = false;
         scene.add(this.laser);
@@ -40,11 +40,12 @@ export class Laser
         this.laserLight = new THREE.PointLight();
         this.laserLight.distance = 10;
         this.laserLight.intensity = 0;
+        this.laserLight.decay = 10;
         this.laserLight.color = new THREE.Color(1, 0, 0);
         this.laserLight.castShadow = true;
         scene.add(this.laserLight);
 
-        this.laserPointer = new THREE.SpotLight(0xff0000, 0, undefined, Math.PI / 12);
+        this.laserPointer = new THREE.SpotLight(0xff0000, 0, undefined, Math.PI / 24);
 
         this.laserPointer.intensity = 0;
         this.laserPointer.castShadow = true;
@@ -55,7 +56,7 @@ export class Laser
         this.laserPointer.shadow.camera.near = 1;
         this.laserPointer.shadow.camera.far = 1000;
     
-        this.laserPointer.shadow.camera.fov = 15;
+        this.laserPointer.shadow.camera.fov = 8;
 
         this.laserPointerTarget = new Object3D();
 
@@ -110,6 +111,9 @@ export class Laser
             
             const lightPoint = new Vector3();
             lightPoint.subVectors(targetPos, dir.clone().multiplyScalar(0.5));
+
+            const pointerPoint = new Vector3();
+            pointerPoint.subVectors(targetPos, dir.clone().multiplyScalar(2));
             
             this.laserLight.position.set(lightPoint.x, lightPoint.y, lightPoint.z);
             this.laserPointer.position.set(lightPoint.x, lightPoint.y, lightPoint.z);

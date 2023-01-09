@@ -1,6 +1,7 @@
 "use strict";
 
 import * as THREE from 'three';
+import { Vector3 } from 'three';
 
 export class Camera
 {
@@ -10,9 +11,6 @@ export class Camera
     innerLight;
 
     moving;
-    angleOffset;
-    rotationSpeed;
-    rotationDir;
 
     clock;
 
@@ -29,31 +27,78 @@ export class Camera
     innerLightOnAnimAction;
     innerLightOffAnimAction;
 
+    yawAnimMixer;
+    pitchAnimMixer;
+    yawAnimAction;
+    pitchAnimAction;
+
     currentCallback;
     animating;
 
-    constructor(scene, pos, angleDown, viewAngle, fov, rotationSpeed)
+    constructor(scene, camera, pitchController, yawController, rotationValues, rotationSpeed, pauseLength)
     {
         this.scene = scene;
 
-        this.camera = new THREE.PerspectiveCamera(45, 2, 0.1, 10000);
+        this.camera = camera;
 
-        this.angleOffset = 0;
-        this.rotationSpeed = rotationSpeed;
-        this.rotationDir = -1;
-        this.fov = fov;
+        this.pitchController = pitchController;
+        this.yawController = yawController;
 
-        this.cameraHolder = new THREE.Object3D();
-        this.cameraHolder.position.set(pos.x, pos.y, pos.z);
-        this.viewAngle = viewAngle;
-        this.cameraHolder.rotation.set(0, this.viewAngle, 0);
-        this.camera.rotation.set(-angleDown, 0, 0);
+        const pitchAnimAngles= [];
+        const yawAnimAngles = []
 
-        scene.add(this.cameraHolder);
-        this.cameraHolder.add(this.camera);
+        for (var i = 0; i < rotationValues.length; i++)
+        {
+            pitchAnimAngles.push(rotationValues[i][0] * Math.PI / 180);
+            yawAnimAngles.push(rotationValues[i][1] * Math.PI / 180);
+
+            pitchAnimAngles.push(rotationValues[i][0] * Math.PI / 180);
+            yawAnimAngles.push(rotationValues[i][1] * Math.PI / 180);
+        }
+
+        pitchAnimAngles.push(rotationValues[0][0] * Math.PI / 180);
+        yawAnimAngles.push(rotationValues[0][1] * Math.PI / 180);
+
+        console.log(pitchAnimAngles);
+        
+        const rotationAnimTimes = [0];
+
+        var stopFrame = true;
+        for (var i = 1; i < pitchAnimAngles.length; i++)
+        {
+            if (stopFrame)
+                rotationAnimTimes.push(rotationAnimTimes[i - 1] + pauseLength);
+            else
+            {
+                rotationAnimTimes.push(
+                    rotationAnimTimes[i - 1] +
+                    Math.max(
+                        Math.abs(pitchAnimAngles[i] - pitchAnimAngles[i - 1]),
+                        Math.abs(yawAnimAngles[i] - yawAnimAngles[i - 1])
+                    ) / rotationSpeed
+                );
+            }
+            stopFrame = !stopFrame;
+        }
+
+        console.log(rotationAnimTimes);
+
+        var pitchAnimValues = [];
+        var yawAnimValues = [];
+
+        for (var i = 0; i < pitchAnimAngles.length; i++)
+        {
+            const q1 = new THREE.Quaternion();
+            q1.setFromEuler(new THREE.Euler(0, yawAnimAngles[i], pitchAnimAngles[i], 'XYZ'));
+            pitchAnimValues = pitchAnimValues.concat(q1.toArray());
+            
+            const q2 = new THREE.Quaternion();
+            q2.setFromEuler(new THREE.Euler(0, yawAnimAngles[i], 0, 'XYZ'));
+            yawAnimValues = yawAnimValues.concat(q2.toArray());
+        }
 
         this.light = new THREE.SpotLight( 0xddddff, 1, undefined, Math.PI / 12, 0.2);
-        this.light.position.set(0, -1, 0);
+        this.light.position.set(0, -0.3, 0);
     
         this.light.castShadow = true;
     
@@ -63,7 +108,7 @@ export class Camera
         this.light.shadow.camera.near = 1;
         this.light.shadow.camera.far = 1000;
     
-        this.light.shadow.camera.fov = 120;
+        this.light.shadow.camera.fov = camera.fov;
         this.light.shadow.radius = 10;
 
 	    this.camera.add(this.light);
@@ -79,7 +124,7 @@ export class Camera
         this.innerLight.shadow.camera.near = 1;
         this.innerLight.shadow.camera.far = 1000;
     
-        this.innerLight.shadow.camera.fov = 120;
+        this.innerLight.shadow.camera.fov = camera.fov;
         this.innerLight.shadow.radius = 10;
         
         this.light.add(this.innerLight);
@@ -91,6 +136,21 @@ export class Camera
         this.innerLight.target = lightTarget;
 
         this.moving = true;
+
+        const pitchKeyFrames = new THREE.QuaternionKeyframeTrack(".quaternion", rotationAnimTimes, pitchAnimValues, THREE.InterpolateLinear);
+        const yawKeyFrames = new THREE.QuaternionKeyframeTrack(".quaternion", rotationAnimTimes, yawAnimValues, THREE.InterpolateLinear);
+        
+        const pitchClip = new THREE.AnimationClip("rotatePitch", -1, [pitchKeyFrames]);
+        const yawClip = new THREE.AnimationClip("rotateYaw", -1, [yawKeyFrames]);
+
+        this.pitchAnimMixer = new THREE.AnimationMixer(this.pitchController);
+        this.yawAnimMixer = new THREE.AnimationMixer(this.yawController);
+        
+        this.pitchAnimAction = this.pitchAnimMixer.clipAction(pitchClip);
+        this.yawAnimAction = this.pitchAnimMixer.clipAction(yawClip);
+
+        this.pitchAnimAction.play();
+        this.yawAnimAction.play();
 
         this.clock = new THREE.Clock();
 
@@ -126,19 +186,22 @@ export class Camera
 
         this.lightAnimMixer.update(delta);
         this.innerLightAnimMixer.update(delta);
+        
+        this.pitchAnimMixer.update(delta);
+        this.yawAnimMixer.update(delta);
 
-        if (this.moving)
-        {
-            this.angleOffset += this.rotationDir * this.rotationSpeed * delta;
+        // if (this.moving)
+        // {
+        //     this.angleOffset += this.rotationDir * this.rotationSpeed * delta;
 
-            if (Math.abs(this.angleOffset) >= this.fov / 2)
-            {
-                this.angleOffset = this.rotationDir * this.fov / 2;
-                this.rotationDir *= -1;
-            }
+        //     if (Math.abs(this.angleOffset) >= this.fov / 2)
+        //     {
+        //         this.angleOffset = this.rotationDir * this.fov / 2;
+        //         this.rotationDir *= -1;
+        //     }
 
-            this.cameraHolder.rotation.set(0, this.viewAngle + this.angleOffset, 0);
-        }
+        //     this.yawController.rotation.set(0, this.centreAngle + this.angleOffset, 0);
+        // }
     }
     
     lightOn(callback)
