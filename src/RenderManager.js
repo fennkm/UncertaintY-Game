@@ -15,15 +15,10 @@ export class RenderManager
 
     constructor(scene, canvas, camera)
     {
-		this.renderer = new THREE.WebGLRenderer({ 
-			canvas: canvas,
-			powerPreference: "high-performance",
-			antialias: false,
-			stencil: false,
-			depth: false
-		});
+		this.renderer = new THREE.WebGLRenderer({ canvas: canvas });
 
 		this.renderer.shadowMap.enabled = true;
+        this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
         this.camera = camera;
 		this.fxComposer = new PP.EffectComposer(this.renderer);

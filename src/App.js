@@ -2,19 +2,20 @@
 
 import * as THREE from 'three';
 import { Vector3, Vector2 } from 'three';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { FlyControls } from 'three/examples/jsm/controls/FlyControls.js';
 import { QuantumObject } from './QuantumObject.js';
 import { Laser } from './Laser.js';
 import { Camera } from './Camera.js';
 import { RenderManager } from './RenderManager.js';
 
-let scene;
+let scene, loader;
 let renderManager;
-let activeCamera, camera, debugCam;
+let activeCamera, camera, cameras, cameraPitchControllers, cameraYawControllers, debugCam;
 let ambLight;
 let controls, clock;
-let pointer, raycaster, laser, selectedObj;
-let qCube;
+let pointer, raycaster, laser, selection;
+let interactables;
 
 var debug = false;
 var helpers;
@@ -26,115 +27,101 @@ class App
 		scene = new THREE.Scene();
 		scene.background = new THREE.Color('black');
 
+		loader  = new GLTFLoader();
+
 		clock = new THREE.Clock();
 
 		raycaster = new THREE.Raycaster();
 
-		camera = new Camera(scene, new Vector3(0, 20, 0), Math.PI / 12, 0, Math.PI / 2, Math.PI / 18);
-	
-		debugCam = new THREE.PerspectiveCamera(45, 2, 0.1, 10000);
-		debugCam.position.set(0, 5, 0);
+		cameras = [];
+		cameraPitchControllers = [];
+		cameraYawControllers = [];
 
-		activeCamera = (debug ? debugCam : camera.getCamera());
+		interactables = [];
 
-		const canvas = document.getElementById("gl-canvas");
-		renderManager = new RenderManager(scene, canvas, activeCamera);
-		
-		createControls(debugCam, canvas);
+		loader.load(
+			'../assets/models/room1.glb',
+			(gltf) => {
+				scene.add(gltf.scene);
+				gltf.scene.traverse((e) => {
+					e.castShadow = true;
+					e.receiveShadow = true;
+					if (e.type == "PerspectiveCamera")
+						cameras.push(e);
+					if (e.type == "Mesh")
+					{
+						e.material.metalness = 0;
+						e.material.metalnessMap = null;
+					}
+					if (e.name.substring(0, 3) == "CP-")
+						cameraPitchControllers.push(e);
+					else if (e.name.substring(0, 3) == "CY-")
+						cameraYawControllers.push(e);
+					else if (e.name.substring(0, 3) == "LO-")
+						e.material.emissiveIntensity = 0;
+					else if (e.name.substring(0, 2) == "O-" || e.name.substring(0, 2) == "Q-")
+						interactables.push(e);
+				});
 
-		ambLight = new THREE.AmbientLight( 0x404040, (debug ? 0.5 : 0.022));
-		scene.add(ambLight);
-
-		const tLoader = new THREE.TextureLoader();
-
-		const textureGrass = tLoader.load('../assets/textures/Grass002_2K_Color.png');
-		textureGrass.wrapS = THREE.RepeatWrapping;
-		textureGrass.wrapT = THREE.RepeatWrapping;
-		textureGrass.repeat.set(10, 10);
-
-		const grassNormal = tLoader.load('../assets/textures/Grass002_2K_NormalGL.png');
-		grassNormal.wrapS = THREE.RepeatWrapping;
-		grassNormal.wrapT = THREE.RepeatWrapping;
-		grassNormal.repeat.set(10, 10);
-
-		const planeMat = new THREE.MeshStandardMaterial({ map: textureGrass, normalMap: grassNormal, normalScale: new Vector2(0.2, 0.2) });
-		const plane = new THREE.Mesh(new THREE.PlaneGeometry(1000, 1000), planeMat);
-		plane.rotateX(-Math.PI / 2);
-		plane.receiveShadow = true;
-		scene.add(plane);
-
-		const textureBrick =  tLoader.load('../assets/textures/Bricks_Terracotta.jpg');
-		const AOTexture = tLoader.load('../assets/textures/Bricks_Terracotta_002_ambientOcclusion.jpg');
-		const bumpTexture = tLoader.load('../assets/textures/Bricks_Terracotta_002_height.png');
-		const normalTexture = tLoader.load('../assets/textures/Bricks_Terracotta_002_normal.jpg');
-		const roughTexture = tLoader.load('../assets/textures/Bricks_Terracotta_002_roughness.jpg');
-
-		function createCube(size, x, y, z, rx, ry, rz)
-		{
-			const cubeMaterial = new THREE.MeshStandardMaterial({map: textureBrick, aoMap: AOTexture, roughnessMap: roughTexture, normalMap: normalTexture, bumpMap: bumpTexture});    
-			const cubeGeo = new THREE.BoxGeometry(size, size, size);
-			const cube = new THREE.Mesh(cubeGeo, cubeMaterial);
-			cube.geometry.setAttribute('uv2', cube.geometry.getAttribute("uv"));
-			cube.position.set(x, y, z);
-			cube.rotation.set(rx, ry, rz);
-			cube.castShadow = true;
-			cube.receiveShadow = true;
-			scene.add(cube);
-			cubeGeo.computeBoundingBox();
-			return cube;
-		}
-
-		const field = Math.PI / 2;
-		const dist = 60;
-		const size = 5;
-		const num = 14;
-
-		var cubes = [];
-
-		for (var i = 0; i < num; i++)
-		{
-			const cube = createCube(
-				size, 
-				-dist * Math.sin((field / 2) * (2 * i / (num - 1) - 1)),
-				2.5,
-				-dist * Math.cos((field / 2) * (2 * i / (num - 1) - 1)),
-				0,
-				-i * 2 + 1,
-				0
-			);
-
-			cubes.push(cube);
-		}
-
-		qCube = new QuantumObject(cubes, camera);
-
-		laser = new Laser(scene);
-
-		window.addEventListener("resize", onWindowResize);
-		onWindowResize();
-		
-		pointer = new Vector2();
-		window.addEventListener("pointermove", onPointerMove);
-		window.addEventListener("pointerdown", onPointerDown);
-
-		window.addEventListener("keydown", onKeyDown);
-
-		helpers = [new THREE.SpotLightHelper(camera.light), new THREE.SpotLightHelper(camera.innerLight), new THREE.CameraHelper(camera.camera), new THREE.PointLightHelper(laser.laserLight), new THREE.SpotLightHelper(laser.laserPointer)];
-		
-		helpers.map((e) => { scene.add(e); });
-
-		for (var i = 0; i < num; i++)
-		{
-			const arrowHelper = new THREE.ArrowHelper(new Vector3(0, 1, 0), cubes[i].position, 1);
-			scene.add(arrowHelper);
-			helpers.push(arrowHelper);
-		}
-
-		if (!debug)
-			helpers.map(function(e) { e.visible = false; });
-
-		requestAnimationFrame(render);
+				onFinishLoad();
+			},
+			(xhr) => {
+				console.log(xhr.loaded + "/161974324 loaded");
+			},
+			(error) => {
+				console.log(error);
+			}
+		);
 	}
+}
+
+function onFinishLoad()
+{
+	camera = new Camera(
+		scene, 
+		cameras[0], 
+		cameraPitchControllers[0],
+		cameraYawControllers[0],
+		Math.PI / 10, 
+		-Math.PI / 4,
+		[[10, -15], [10, -87], [35, -87], [10, -87]],
+		Math.PI / 12
+	);
+	
+	debugCam = new THREE.PerspectiveCamera(45, 2, 0.1, 10000);
+	debugCam.position.set(0, 5, 0);
+
+	activeCamera = (debug ? debugCam : camera.getCamera());
+
+	const canvas = document.getElementById("gl-canvas");
+	renderManager = new RenderManager(scene, canvas, activeCamera);
+
+	renderManager.setScreenFX(!debug);
+	
+	createControls(debugCam, canvas);
+
+	ambLight = new THREE.AmbientLight( 0x404040, (debug ? 0.5 : 0));
+	scene.add(ambLight);
+
+	laser = new Laser(scene);
+
+	window.addEventListener("resize", onWindowResize);
+	onWindowResize();
+	
+	pointer = new Vector2();
+	window.addEventListener("pointermove", onPointerMove);
+	window.addEventListener("pointerdown", onPointerDown);
+
+	window.addEventListener("keydown", onKeyDown);
+
+	helpers = [new THREE.SpotLightHelper(camera.light), new THREE.SpotLightHelper(camera.innerLight), new THREE.CameraHelper(camera.camera), new THREE.PointLightHelper(laser.laserLight)];
+	
+	helpers.map((e) => { scene.add(e); });
+
+	if (!debug)
+		helpers.map(function(e) { e.visible = false; });
+
+	requestAnimationFrame(render);
 }
 
 function onWindowResize()
@@ -151,43 +138,25 @@ function onWindowResize()
 
 function render() 
 {
-	const a = performance.now();
-
     const delta = clock.getDelta()
     controls.update(delta);
 
-    qCube.update();
     laser.update();
     camera.update();
 
     raycaster.setFromCamera(pointer, activeCamera);
     
-    const intersects = raycaster.intersectObject(qCube.getActiveObj());
+    const intersects = raycaster.intersectObjects(interactables);
 
     if (intersects[0] == null)
-        selectedObj = null;
+        selection = null;
     else
-        selectedObj = intersects[0].object;
-
-    const b = performance.now();
+		selection = intersects[0];
     
     renderManager.render();
-
-    const c = performance.now();
 	
     requestAnimationFrame(render);
-	
-    const d = performance.now();
-	
-    if (delta * 1000 > 5) // Falls below 20 fps
-        console.log("Slow frame! " +
-		(b - a) + "ms to compute, " +
-		(c - b) + "ms to render, " +
-		(d - c) + "ms to next frame, " + 
-		(d - a) + "ms total, " + 
-		delta * 1000 + "ms delta time.");
 }
-
 
 function createControls(camera, canvas) 
 {
@@ -206,28 +175,29 @@ function onPointerMove(event)
 
 function onPointerDown(event) 
 {
-    if (selectedObj != null && !laser.isActive() && !camera.isAnimating())
+    if (selection != null && !laser.isActive() && !camera.isAnimating())
     {
-        const obj = selectedObj;
+        const obj = selection.object;
         const objPos = getWorldPosition(obj);
 
         // Source of beam must be slightly offset from underneath
         //  the camera FOR SOME REASON otherwise it doesn't display
-        const source = new Vector3(0, 0, -0.1);
+        const source = new Vector3(0, -0.1, -0.1);
         camera.getLight().localToWorld(source);
         
         const dir = new Vector3();
         dir.subVectors(objPos, source).normalize();
         raycaster.set(source, dir);
+		
+		console.log(obj);
+		console.log(raycaster.intersectObject(obj));
 
-        const hitPoint = raycaster.intersectObject(obj)[0].point;
-
+        const hitPoint = selection.point;
+		
         camera.setMoving(false);
-		qCube.setMoving (false);
         
         camera.lightOff(() => { 
-            laser.fire(source, hitPoint, () => { 
-				qCube.setMoving(true);
+            laser.fire(source, hitPoint, () => {
                 camera.lightOn(() => { 
                     camera.setMoving(true); 
                 }); 
@@ -247,7 +217,7 @@ function onKeyDown(event)
             activeCamera = camera.camera;
             debug = false;
             helpers.map(function(e) { e.visible = false; });
-            ambLight.intensity = 0.022;
+            ambLight.intensity = 0;
 
 			renderManager.setCamera(activeCamera);
 			renderManager.setScreenFX(true);
@@ -265,9 +235,7 @@ function onKeyDown(event)
     }
 	else if (keyCode == 115)
 	{
-		const pos = getWorldPosition(camera.getLight());
-		debugCam.position.set(pos.x, pos.y, pos.z);
-		debugCam.rotation.set(-Math.PI / 12, 0, 0);
+		renderManager.setScreenFX(!renderManager.screenFXActive);
 	}
 }
 
