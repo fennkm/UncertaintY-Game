@@ -52,7 +52,7 @@ class App
 				gltf.scene.updateWorldMatrix(false, true);
 				
 				gltf.scene.traverse((e) => {
-					
+
 					e.castShadow = true;
 					e.receiveShadow = true;
 
@@ -73,29 +73,29 @@ class App
 					{
 						var boundingBox = new THREE.Box3();
 						boundingBox.setFromObject(e, true);
-
-						interactables.push(new Interactable(e, boundingBox, -1));
-
+						
 						const temp = new Box3Helper(boundingBox);
 						scene.add(temp);
+						
+						interactables.push(new Interactable(e, boundingBox, temp, scene, -1));
 					}
 					else if (e.name.substring(0, 2) == "Q-")
 					{
 						const boundingBox = new THREE.Box3();
 						boundingBox.setFromObject(e, true);
-
-						const groupNum = e.name.substring(2, 3)
-						const quantumObj = new Interactable(e, boundingBox, groupNum)
-
-						interactables.push(quantumObj);
-
-						while (quantumObjs.length <= groupNum)
-							quantumObjs.push([]);
-
-						quantumObjs[groupNum].push(quantumObj);
-
+						
 						const temp = new Box3Helper(boundingBox, new THREE.Color(0xff00000));
 						scene.add(temp);
+
+						const groupNum = e.name.substring(2, 3)
+						const quantumObj = new Interactable(e, boundingBox, temp, scene, groupNum)
+
+						interactables.push(quantumObj);
+						
+						while (quantumObjs.length <= groupNum)
+						quantumObjs.push([]);
+						
+						quantumObjs[groupNum].push(quantumObj);
 					}
 				});
 
@@ -116,7 +116,6 @@ class App
 
 function onFinishLoad()
 {
-
 	camera = new Camera(
 		scene, 
 		cameras[0], 
@@ -187,9 +186,15 @@ function render()
 	interactables.map(e => e.update(camera));
 	quantumGroups.map(e => e.update());
 
+	const observed = [];
+
+	for (var i = 0; i < interactables.length; i++)
+		if (interactables[i].isObserved() && interactables[i].getObject().visible)
+			observed.push(interactables[i].getObject());
+
     raycaster.setFromCamera(pointer, activeCamera);
 
-    const intersects = raycaster.intersectObjects(interactables.map(e => e.getObject()));
+    const intersects = raycaster.intersectObjects(observed);
 
     if (intersects[0] == null)
         selection = null;

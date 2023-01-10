@@ -1,7 +1,7 @@
 "use strict";
 
 import * as THREE from 'three';
-import { Vector3, Vector2 } from 'three';
+import { Vector3, Vector2, Box3Helper } from 'three';
 
 export class Interactable
 {
@@ -15,8 +15,10 @@ export class Interactable
 
     active;
 
-    constructor(object, boundingBox, quantumGroup)
+    constructor(object, boundingBox, bbh, scene, quantumGroup)
     {
+        this.scene = scene;
+        this.bbh = bbh;
         this.object = object;
 
         this.boundingBox = boundingBox;
@@ -53,6 +55,19 @@ export class Interactable
             this.observed = this.boxConeIntersect(this.object, this.boundingBox, camera);
         else
             this.observed = false;
+
+        if (this.observed && this.object.visible)
+        {
+            this.scene.remove(this.bbh);
+            this.bbh = new Box3Helper(this.boundingBox, new THREE.Color(0x00ff00));
+            this.scene.add(this.bbh);
+        }
+        else
+        {
+            this.scene.remove(this.bbh);
+            this.bbh = new Box3Helper(this.boundingBox, new THREE.Color(0xff0000));
+            this.scene.add(this.bbh);
+        }
     }
 
     // NOTE: DOES NOT COVER ALL CASES, OBJECTS CONSIDERED INVISIBLE IF ONE VERTEX IS BEHIND THE
@@ -60,25 +75,20 @@ export class Interactable
     // This decision was made to optimise performance, as these cases are never encountered in-game.
     boxConeIntersect(obj, boundingBox, camera)
     {
+        const viewBounds = boundingBox.clone().applyMatrix4(this.sceneToView);
         // Get vertices of bounding box
-        const low = boundingBox.min;
-        const high = boundingBox.max;
+        const low = viewBounds.min;
+        const high = viewBounds.max;
 
-        const localToView = new THREE.Matrix4();
-        localToView.multiplyMatrices(this.sceneToView, obj.matrixWorld);
-
-        // CAN'T APPLY TRANSFORMATION TO BOUNDING BOX DIRECTLY SINCE IT WILL ONLY
-        // APPLY IT TO THE MIN AND MAX CORNERS, THEN MAKE THE REST OF THE BOX CONFORM
-        // TO THE WORLD AXIS
         const verts = [
-            new Vector3(low.x,  low.y,  low.z ).applyMatrix4(localToView),
-            new Vector3(high.x, low.y,  low.z ).applyMatrix4(localToView),
-            new Vector3(high.x, high.y, low.z ).applyMatrix4(localToView),
-            new Vector3(low.x,  high.y, low.z ).applyMatrix4(localToView),
-            new Vector3(low.x,  high.y, high.z).applyMatrix4(localToView),
-            new Vector3(low.x,  low.y,  high.z).applyMatrix4(localToView),
-            new Vector3(high.x, low.y,  high.z).applyMatrix4(localToView),
-            new Vector3(high.x, high.y, high.z).applyMatrix4(localToView),
+            new Vector3(low.x,  low.y,  low.z ),
+            new Vector3(high.x, low.y,  low.z ),
+            new Vector3(high.x, high.y, low.z ),
+            new Vector3(low.x,  high.y, low.z ),
+            new Vector3(low.x,  high.y, high.z),
+            new Vector3(low.x,  low.y,  high.z),
+            new Vector3(high.x, low.y,  high.z),
+            new Vector3(high.x, high.y, high.z),
         ];
 
         // Instantly discard if a vertex is behind the camera,

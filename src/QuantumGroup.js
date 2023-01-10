@@ -7,6 +7,7 @@ export class QuantumGroup
     objs;
 
     activeObj;
+    nextObj;
     switchReady;
 
     moving;
@@ -20,6 +21,7 @@ export class QuantumGroup
         
         this.moving = true;
         this.activeObj = 0;
+        this.nextObj = 0;
         this.switchReady = false;
 
         this.objs.map(function(e) { e.getObject().visible = false; });
@@ -28,17 +30,22 @@ export class QuantumGroup
 
     update()
     {
-        if(this.moving && !this.switchReady && this.objs[this.activeObj].isObserved())
-            this.switchReady = true;
- 
-        if (this.moving && this.switchReady && !this.objs[this.activeObj].isObserved())
+        if(this.moving && this.objs[this.activeObj].isObserved())
         {
-            var prevPos = this.activeObj;
-            while (this.objs[this.activeObj].isObserved())
-                this.activeObj = Math.floor(Math.random() * this.objs.length);
-            
-            this.objs[prevPos].getObject().visible = false;
-            this.objs[this.activeObj].getObject().visible = true;
+            this.switchReady = true;
+
+            do
+                this.nextObj = Math.floor(Math.random() * this.objs.length);
+            while (this.nextObj == this.activeObj);
+        }
+ 
+        if (this.moving && this.switchReady && !this.objs[this.activeObj].isObserved() && !this.objs[this.nextObj].isObserved())
+        {
+            this.objs[this.activeObj].getObject().visible = false;
+            this.objs[this.nextObj].getObject().visible = true;
+
+            this.activeObj = this.nextObj;
+
             this.switchReady = false;
         }
     }
