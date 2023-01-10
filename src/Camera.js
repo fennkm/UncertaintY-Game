@@ -1,7 +1,6 @@
 "use strict";
 
 import * as THREE from 'three';
-import { Vector3 } from 'three';
 
 export class Camera
 {
@@ -59,7 +58,8 @@ export class Camera
         pitchAnimAngles.push(rotationValues[0][0] * Math.PI / 180);
         yawAnimAngles.push(rotationValues[0][1] * Math.PI / 180);
 
-        console.log(pitchAnimAngles);
+        pitchController.rotation.set(0, 0, pitchAnimAngles[0]);
+        yawController.rotation.set(0, yawAnimAngles[0], 0);
         
         const rotationAnimTimes = [0];
 
@@ -80,8 +80,6 @@ export class Camera
             }
             stopFrame = !stopFrame;
         }
-
-        console.log(rotationAnimTimes);
 
         var pitchAnimValues = [];
         var yawAnimValues = [];
@@ -189,19 +187,6 @@ export class Camera
         
         this.pitchAnimMixer.update(delta);
         this.yawAnimMixer.update(delta);
-
-        // if (this.moving)
-        // {
-        //     this.angleOffset += this.rotationDir * this.rotationSpeed * delta;
-
-        //     if (Math.abs(this.angleOffset) >= this.fov / 2)
-        //     {
-        //         this.angleOffset = this.rotationDir * this.fov / 2;
-        //         this.rotationDir *= -1;
-        //     }
-
-        //     this.yawController.rotation.set(0, this.centreAngle + this.angleOffset, 0);
-        // }
     }
     
     lightOn(callback)
@@ -244,6 +229,17 @@ export class Camera
 
     setMoving(isMoving)
     {
+        if (isMoving && !this.moving)
+        {
+            this.pitchAnimAction.paused = false;
+            this.yawAnimAction.paused = false;
+        }
+        else if (!isMoving && this.moving)
+        {
+            this.pitchAnimAction.paused = true;
+            this.yawAnimAction.paused = true;
+        }
+
         this.moving = isMoving;
     }
 
