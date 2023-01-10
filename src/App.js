@@ -1,7 +1,7 @@
 "use strict";
 
 import * as THREE from 'three';
-import { Vector3, Vector2, Box3Helper, Matrix4 } from 'three';
+import { Vector3, Vector2, ArcCurve } from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { FlyControls } from 'three/examples/jsm/controls/FlyControls.js';
 import { Interactable } from './Interactable.js';
@@ -12,12 +12,13 @@ import { RenderManager } from './RenderManager.js';
 
 let scene, loader;
 let renderManager;
-let activeCamera, camera, cameras, cameraPitchControllers, cameraYawControllers, debugCam;
+let viewingCamera, currentCamera, cameras, sceneCameras, cameraPitchControllers, cameraYawControllers, debugCam;
 let ambLight;
 let controls, clock;
 let pointer, raycaster, laser, selection;
-let interactables, quantumGroups;
-let visibleObjs, aiming;
+let interactables, interactableMap, quantumGroups;
+let aiming, score;
+let room1;
 
 var debug = false;
 var helpers;
@@ -35,14 +36,18 @@ class App
 
 		raycaster = new THREE.Raycaster();
 
-		cameras = [];
+		sceneCameras = [];
 		cameraPitchControllers = [];
 		cameraYawControllers = [];
 
 		interactables = [];
+		interactableMap = {};
+		score = 0;
 
 		const quantumObjs = [];
 		quantumGroups = [];
+
+		helpers = [];
 
 		loader.load(
 			'../assets/models/room1.glb',
@@ -57,7 +62,7 @@ class App
 					e.receiveShadow = true;
 
 					if (e.type == "PerspectiveCamera")
-						cameras.push(e);
+						sceneCameras.push(e);
 					if (e.type == "Mesh")
 					{
 						e.material.metalness = 0;
@@ -74,23 +79,28 @@ class App
 						var boundingBox = new THREE.Box3();
 						boundingBox.setFromObject(e, true);
 						
-						const temp = new Box3Helper(boundingBox);
-						scene.add(temp);
+						const boxHelper = new THREE.Box3Helper(boundingBox, new THREE.Color(0xffff00));
+						helpers.push(boxHelper)
+						scene.add(boxHelper);
 						
-						interactables.push(new Interactable(e, boundingBox, temp, scene, -1));
+						const obj = new Interactable(e, boundingBox, -1);
+						interactables.push(obj);
+						interactableMap[e.name] = obj;
 					}
 					else if (e.name.substring(0, 2) == "Q-")
 					{
 						const boundingBox = new THREE.Box3();
 						boundingBox.setFromObject(e, true);
 						
-						const temp = new Box3Helper(boundingBox, new THREE.Color(0xff00000));
-						scene.add(temp);
+						const boxHelper = new THREE.Box3Helper(boundingBox, new THREE.Color(0xff0000));
+						helpers.push(boxHelper)
+						scene.add(boxHelper);
 
-						const groupNum = e.name.substring(2, 3)
-						const quantumObj = new Interactable(e, boundingBox, temp, scene, groupNum)
+						const groupNum = parseInt(e.name.substring(2, 3));
+						const quantumObj = new Interactable(e, boundingBox, groupNum)
 
 						interactables.push(quantumObj);
+						interactableMap[e.name] = quantumObj;
 						
 						while (quantumObjs.length <= groupNum)
 						quantumObjs.push([]);
@@ -98,6 +108,8 @@ class App
 						quantumObjs[groupNum].push(quantumObj);
 					}
 				});
+				room1 = gltf.scene;
+				room1.visible = false;
 
 				for (var i = 0; i < quantumObjs.length; i++)
 					quantumGroups.push(new QuantumGroup(quantumObjs[i]));
@@ -105,7 +117,7 @@ class App
 				onFinishLoad();
 			},
 			(xhr) => {
-				console.log(Math.trunc((xhr.loaded * 100) / 161974396) + "% loaded");
+				console.log(Math.trunc((xhr.loaded * 100) / 161974288) + "% loaded");
 			},
 			(error) => {
 				console.log(error);
@@ -116,25 +128,43 @@ class App
 
 function onFinishLoad()
 {
-	camera = new Camera(
-		scene, 
-		cameras[0], 
-		cameraPitchControllers[0],
-		cameraYawControllers[0],
-		[[10, -5], [10, -90], [35, -90], [35, -5]],
-		Math.PI / 24,
-		0.3
+	cameras = []
+	cameras.push(
+		new Camera(
+			scene, 
+			sceneCameras[0], 
+			cameraPitchControllers[0],
+			cameraYawControllers[0],
+			[[10, -5], [10, -90], [35, -90], [35, -5]],
+			Math.PI / 24,
+			0.3
+		)
 	);
+
+	cameras.push(
+		new Camera(
+			scene, 
+			sceneCameras[1], 
+			cameraPitchControllers[1],
+			cameraYawControllers[1],
+			[[10, -120], [10, -180], [45, -180], [45, -120]],
+			Math.PI / 24,
+			0.3
+		)
+	);
+
+	cameras.map((e) => { e.setActive(false); });
+	currentCamera = 0;
 
 	aiming = false;
 	
 	debugCam = new THREE.PerspectiveCamera(45, 2, 0.1, 10000);
 	debugCam.position.set(0, 5, 0);
 
-	activeCamera = (debug ? debugCam : camera.getCamera());
+	viewingCamera = (debug ? debugCam : cameras[currentCamera].getCamera());
 
 	const canvas = document.getElementById("gl-canvas");
-	renderManager = new RenderManager(scene, canvas, activeCamera);
+	renderManager = new RenderManager(scene, canvas, viewingCamera);
 
 	renderManager.setScreenFX(!debug);
 	
@@ -154,7 +184,15 @@ function onFinishLoad()
 
 	window.addEventListener("keydown", onKeyDown);
 
-	helpers = [new THREE.SpotLightHelper(camera.light), new THREE.SpotLightHelper(camera.innerLight), new THREE.CameraHelper(camera.camera), new THREE.PointLightHelper(laser.laserLight)];
+	helpers.push(new THREE.PointLightHelper(laser.laserLight));
+	helpers.push(new THREE.SpotLightHelper(laser.laserPointer));
+
+	cameras.map((e) => {
+		helpers = helpers.concat([
+			new THREE.SpotLightHelper(e.getLight()),
+			new THREE.CameraHelper(e.getCamera())
+		])
+	});
 	
 	helpers.map((e) => { scene.add(e); });
 
@@ -168,9 +206,9 @@ function onWindowResize()
 {
     const aspect = window.innerWidth / window.innerHeight;
 
-    camera.getCamera().aspect = aspect;
+    cameras.map((e) => { e.getCamera().aspect = aspect; });
     debugCam.aspect = aspect;
-    camera.getCamera().updateProjectionMatrix();
+    cameras.map((e) => { e.getCamera().updateProjectionMatrix(); });
     debugCam.updateProjectionMatrix();
 
     renderManager.setRenderSize(window.innerWidth, window.innerHeight);
@@ -182,8 +220,8 @@ function render()
     controls.update(delta);
 
     laser.update();
-    camera.update();
-	interactables.map(e => e.update(camera));
+    cameras.map(e => e.update());
+	interactables.map(e => e.update(cameras[currentCamera]));
 	quantumGroups.map(e => e.update());
 
 	const observed = [];
@@ -192,7 +230,7 @@ function render()
 		if (interactables[i].isObserved() && interactables[i].getObject().visible)
 			observed.push(interactables[i].getObject());
 
-    raycaster.setFromCamera(pointer, activeCamera);
+    raycaster.setFromCamera(pointer, viewingCamera);
 
     const intersects = raycaster.intersectObjects(observed);
 
@@ -223,15 +261,26 @@ function onPointerMove(event)
 
 function onPointerDown(event) 
 {
-    if (selection != null && !laser.isActive() && !camera.isAnimating() && aiming)
+    if (selection != null && !laser.isActive() && !cameras[currentCamera].isAnimating() && aiming)
     {
-        const obj = selection.object;
-        const objPos = getWorldPosition(obj);
+        var target = selection.object;
+		
+		while (interactableMap[target.name] == null)
+		{
+			target = target.parent;
+
+			if (target == scene)
+				return;
+		}
+
+		const obj = interactableMap[target.name];
+
+        const objPos = getWorldPosition(obj.getObject());
 
         // Source of beam must be slightly offset from underneath
         //  the camera FOR SOME REASON otherwise it doesn't display
         const source = new Vector3(0, -0.1, -0.1);
-        camera.getLight().localToWorld(source);
+        cameras[currentCamera].getLight().localToWorld(source);
         
         const dir = new Vector3();
         dir.subVectors(objPos, source).normalize();
@@ -239,11 +288,25 @@ function onPointerDown(event)
 
         const hitPoint = selection.point;
         
-        camera.lightOff(() => { 
+		quantumGroups.map(e => e.setMoving(false));
+        cameras[currentCamera].lightOff(() => { 
             laser.fire(source, hitPoint, () => {
-                camera.lightOn(() => { 
+				if (obj.getQuantumGroup() != -1)
+				{
+					quantumGroups[obj.getQuantumGroup()].setActive(false);
+					console.log(++score);
+					if (score == quantumGroups.length)
+						console.log("You win!");
+				}
+				else
+				{
+					obj.getObject().visible = false;
+					console.log("oops");
+				}
+                cameras[currentCamera].lightOn(() => { 
 					aiming = false;
-                    camera.setMoving(true); 
+                    cameras[currentCamera].setMoving(true); 
+					quantumGroups.map(e => e.setMoving(true));
                 }); 
             }); 
         });
@@ -259,40 +322,54 @@ function onKeyDown(event)
 		if (aiming)
 		{
 			aiming = false;
-			camera.setMoving(true);
+			cameras[currentCamera].setMoving(true);
 		}
 		else
 		{
 			aiming = true;
-			camera.setMoving(false);
+			cameras[currentCamera].setMoving(false);
 		}
 	}
+	else if (keyCode == 16) // shift key
+    {
+		cameras[currentCamera].setActive(false);
+        currentCamera = (currentCamera + 1) % cameras.length;
+		cameras[currentCamera].setActive(true);
+
+		if (!debug)
+		{
+			viewingCamera = cameras[currentCamera].getCamera();
+			renderManager.setCamera(viewingCamera);
+		}
+    }
     else if (keyCode == 113) // F2 key
     {
         if (debug)
         {
-            activeCamera = camera.camera;
+            viewingCamera = cameras[currentCamera].getCamera();
             debug = false;
             helpers.map(function(e) { e.visible = false; });
             ambLight.intensity = 0;
 
-			renderManager.setCamera(activeCamera);
+			renderManager.setCamera(viewingCamera);
 			renderManager.setScreenFX(true);
         }
         else
         {
-            activeCamera = debugCam;
+            viewingCamera = debugCam;
             debug = true;
             helpers.map(function(e) { e.visible = true; });
             ambLight.intensity = 0.5;
 
-			renderManager.setCamera(activeCamera);
+			renderManager.setCamera(viewingCamera);
 			renderManager.setScreenFX(false);
         }
     }
-	else if (keyCode == 115)
+	else if (keyCode = 115)
 	{
-		renderManager.setScreenFX(!renderManager.screenFXActive);
+		room1.visible = true;
+		
+		cameras[currentCamera].setActive(true);
 	}
 }
 

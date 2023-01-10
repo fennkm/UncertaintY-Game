@@ -30,7 +30,7 @@ export class QuantumGroup
 
     update()
     {
-        if(this.moving && this.objs[this.activeObj].isObserved())
+        if(this.moving && !this.switchReady && this.objs[this.activeObj].isObserved())
         {
             this.switchReady = true;
 
@@ -52,14 +52,17 @@ export class QuantumGroup
 
     setMoving(val)
     {
-        this.moving = val;
+        if (this.active)
+            this.moving = val;
     }
 
     setActive(val)
     {
         this.setMoving(val);
 
-        this.objs[this.activeObj].visible = val;
+        this.active = val;
+
+        this.objs[this.activeObj].getObject().visible = val;
     }
 
     getActiveObj() { return this.objs[this.activeObj]; }

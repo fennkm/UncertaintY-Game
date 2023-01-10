@@ -58,8 +58,14 @@ export class Camera
         pitchAnimAngles.push(rotationValues[0][0] * Math.PI / 180);
         yawAnimAngles.push(rotationValues[0][1] * Math.PI / 180);
 
-        pitchController.rotation.set(0, 0, pitchAnimAngles[0]);
-        yawController.rotation.set(0, yawAnimAngles[0], 0);
+        const startPitch = new THREE.Quaternion();
+        startPitch.setFromEuler(new THREE.Euler(0, yawAnimAngles[0], pitchAnimAngles[0], 'XYZ'));
+        
+        const startYaw = new THREE.Quaternion();
+        startYaw.setFromEuler(new THREE.Euler(0, yawAnimAngles[0], 0, 'XYZ'));
+
+        // pitchController.rotation.set(0, 0, pitchAnimAngles[0]);
+        // yawController.rotation.set(0, yawAnimAngles[0], 0);
         
         const rotationAnimTimes = [0];
 
@@ -147,10 +153,15 @@ export class Camera
         this.pitchAnimAction = this.pitchAnimMixer.clipAction(pitchClip);
         this.yawAnimAction = this.pitchAnimMixer.clipAction(yawClip);
 
+        this.clock = new THREE.Clock();
+
         this.pitchAnimAction.play();
         this.yawAnimAction.play();
 
-        this.clock = new THREE.Clock();
+        const delta = this.clock.getDelta();
+        
+        this.pitchAnimMixer.update(delta);
+        this.yawAnimMixer.update(delta);
 
         this.animating = false;
 
@@ -225,6 +236,12 @@ export class Camera
             this.lightOffAnimAction.play();
             this.innerLightOffAnimAction.play();
         }
+    }
+
+    setActive(val)
+    {
+        this.setMoving(val);
+        this.setVisible(val);
     }
 
     setMoving(isMoving)

@@ -13,19 +13,13 @@ export class Interactable
     sceneToView;
     viewToClip;
 
-    active;
-
-    constructor(object, boundingBox, bbh, scene, quantumGroup)
+    constructor(object, boundingBox, quantumGroup)
     {
-        this.scene = scene;
-        this.bbh = bbh;
         this.object = object;
 
         this.boundingBox = boundingBox;
 
         this.quantumGroup = quantumGroup;
-
-        this.active = true;
         
         this.observed = false;
 
@@ -55,19 +49,6 @@ export class Interactable
             this.observed = this.boxConeIntersect(this.object, this.boundingBox, camera);
         else
             this.observed = false;
-
-        if (this.observed && this.object.visible)
-        {
-            this.scene.remove(this.bbh);
-            this.bbh = new Box3Helper(this.boundingBox, new THREE.Color(0x00ff00));
-            this.scene.add(this.bbh);
-        }
-        else
-        {
-            this.scene.remove(this.bbh);
-            this.bbh = new Box3Helper(this.boundingBox, new THREE.Color(0xff0000));
-            this.scene.add(this.bbh);
-        }
     }
 
     // NOTE: DOES NOT COVER ALL CASES, OBJECTS CONSIDERED INVISIBLE IF ONE VERTEX IS BEHIND THE
@@ -159,4 +140,6 @@ export class Interactable
     isObserved() { return this.observed; }
 
     getObject() { return this.object; }
+
+    getQuantumGroup() { return this.quantumGroup; }
 }
