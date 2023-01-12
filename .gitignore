@@ -3,4 +3,4 @@ node_modules/*
 !node_modules/three.meshline/*
 !node_modules/postprocessing
 !node_modules/postprocessing/*
-build
+./build
