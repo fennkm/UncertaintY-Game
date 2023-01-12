@@ -1,7 +1,7 @@
 "use strict";
 
 import * as THREE from 'three';
-import { Vector3, Vector2, ArcCurve } from 'three';
+import { Vector3, Vector2 } from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { FlyControls } from 'three/examples/jsm/controls/FlyControls.js';
 import { Interactable } from './Interactable.js';
@@ -153,7 +153,7 @@ function onFinishLoad()
 		)
 	);
 
-	cameras.map((e) => { e.setActive(false); });
+	cameras.map((e) => { e.setVisible(false); });
 	currentCamera = 0;
 
 	aiming = false;
@@ -332,9 +332,9 @@ function onKeyDown(event)
 	}
 	else if (keyCode == 16) // shift key
     {
-		cameras[currentCamera].setActive(false);
+		cameras[currentCamera].setVisible(false);
         currentCamera = (currentCamera + 1) % cameras.length;
-		cameras[currentCamera].setActive(true);
+		cameras[currentCamera].setVisible(true);
 
 		if (!debug)
 		{
@@ -365,8 +365,9 @@ function onKeyDown(event)
 			renderManager.setScreenFX(false);
         }
     }
-	else if (keyCode = 115)
+	else if (keyCode == 115)
 	{
+		console.log("loading room 1");
 		room1.visible = true;
 		
 		cameras[currentCamera].setActive(true);
