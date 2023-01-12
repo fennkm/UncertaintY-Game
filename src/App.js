@@ -2,23 +2,18 @@
 
 import * as THREE from 'three';
 import { Vector3, Vector2 } from 'three';
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { FlyControls } from 'three/examples/jsm/controls/FlyControls.js';
-import { Interactable } from './Interactable.js';
-import { QuantumGroup } from './QuantumGroup.js';
 import { Laser } from './Laser.js';
-import { Camera } from './Camera.js';
+import { LevelLoader } from './LevelLoader.js';
 import { RenderManager } from './RenderManager.js';
+import { UIManager } from './UIManager.js';
 
-let scene, loader;
-let renderManager;
-let viewingCamera, currentCamera, cameras, sceneCameras, cameraPitchControllers, cameraYawControllers, debugCam;
-let ambLight;
+let scene, lvl, levelLoader, ambLight;
+let renderManager, uiManager;
+let viewingCamera, currentCamera, menuCam, debugCam;
 let controls, clock;
 let pointer, raycaster, laser, selection;
-let interactables, interactableMap, quantumGroups;
-let aiming, score;
-let room1;
+let aiming, lives, score, timeLeft;
 
 var debug = false;
 var helpers;
@@ -27,189 +22,87 @@ class App
 {
 	init() 
 	{
+		const canvas = document.getElementById("gl-canvas");
+
 		scene = new THREE.Scene();
 		scene.background = new THREE.Color('black');
-
-		loader  = new GLTFLoader();
 
 		clock = new THREE.Clock();
 
 		raycaster = new THREE.Raycaster();
 
-		sceneCameras = [];
-		cameraPitchControllers = [];
-		cameraYawControllers = [];
+		debugCam = new THREE.PerspectiveCamera(45, 2, 0.1, 10000);
+		debugCam.position.set(0, 5, 0);
+		scene.add(debugCam);
+		
+		createControls(debugCam, canvas);
 
-		interactables = [];
-		interactableMap = {};
-		score = 0;
+		menuCam = new THREE.PerspectiveCamera(45, 2, 0.1, 10000);
+		scene.add(menuCam);
 
-		const quantumObjs = [];
-		quantumGroups = [];
+		viewingCamera = menuCam;//(debug ? debugCam : cameras[currentCamera].getCamera());
+		renderManager = new RenderManager(scene, canvas, viewingCamera);
+
+		renderManager.setScreenFX(!debug);
+
+		ambLight = new THREE.AmbientLight( 0x404040, (debug ? 0.5 : 0));
+		scene.add(ambLight);
+
+		laser = new Laser(scene);
+		
+		pointer = new Vector2();
+		window.addEventListener("pointermove", onPointerMove);
+		window.addEventListener("pointerdown", onPointerDown);
+
+		window.addEventListener("keydown", onKeyDown);
 
 		helpers = [];
 
-		loader.load(
-			'../assets/models/room1.glb',
-			(gltf) => {
-				scene.add(gltf.scene);
+		helpers.push(new THREE.PointLightHelper(laser.laserLight));
+		helpers.push(new THREE.SpotLightHelper(laser.laserPointer));
+		scene.add(helpers[0]);
+		scene.add(helpers[1]);
 
-				gltf.scene.updateWorldMatrix(false, true);
-				
-				gltf.scene.traverse((e) => {
+		helpers.push(new THREE.CameraHelper(menuCam));
+		menuCam.add(helpers[2]);
 
-					e.castShadow = true;
-					e.receiveShadow = true;
+		if (!debug)
+			helpers.map((e) => { e.visible = false; });
 
-					if (e.type == "PerspectiveCamera")
-						sceneCameras.push(e);
-					if (e.type == "Mesh")
-					{
-						e.material.metalness = 0;
-						e.material.metalnessMap = null;
-					}
-					if (e.name.substring(0, 3) == "CP-")
-						cameraPitchControllers.push(e);
-					else if (e.name.substring(0, 3) == "CY-")
-						cameraYawControllers.push(e);
-					else if (e.name.substring(0, 3) == "LO-")
-						e.material.emissiveIntensity = 0;
-					else if (e.name.substring(0, 2) == "O-")
-					{
-						var boundingBox = new THREE.Box3();
-						boundingBox.setFromObject(e, true);
-						
-						const boxHelper = new THREE.Box3Helper(boundingBox, new THREE.Color(0xffff00));
-						helpers.push(boxHelper)
-						scene.add(boxHelper);
-						
-						const obj = new Interactable(e, boundingBox, -1);
-						interactables.push(obj);
-						interactableMap[e.name] = obj;
-					}
-					else if (e.name.substring(0, 2) == "Q-")
-					{
-						const boundingBox = new THREE.Box3();
-						boundingBox.setFromObject(e, true);
-						
-						const boxHelper = new THREE.Box3Helper(boundingBox, new THREE.Color(0xff0000));
-						helpers.push(boxHelper)
-						scene.add(boxHelper);
-
-						const groupNum = parseInt(e.name.substring(2, 3));
-						const quantumObj = new Interactable(e, boundingBox, groupNum)
-
-						interactables.push(quantumObj);
-						interactableMap[e.name] = quantumObj;
-						
-						while (quantumObjs.length <= groupNum)
-						quantumObjs.push([]);
-						
-						quantumObjs[groupNum].push(quantumObj);
-					}
-				});
-				room1 = gltf.scene;
-				room1.visible = false;
-
-				for (var i = 0; i < quantumObjs.length; i++)
-					quantumGroups.push(new QuantumGroup(quantumObjs[i]));
-
-				onFinishLoad();
-			},
-			(xhr) => {
-				console.log(Math.trunc((xhr.loaded * 100) / 161974288) + "% loaded");
-			},
-			(error) => {
-				console.log(error);
-			}
-		);
+		levelLoader = new LevelLoader(scene);
+		levelLoader.loadLevel(1, () => { onGameLoad(); });
 	}
 }
 
-function onFinishLoad()
+function onGameLoad()
 {
-	cameras = []
-	cameras.push(
-		new Camera(
-			scene, 
-			sceneCameras[0], 
-			cameraPitchControllers[0],
-			cameraYawControllers[0],
-			[[10, -5], [10, -90], [35, -90], [35, -5]],
-			Math.PI / 24,
-			0.3
-		)
-	);
-
-	cameras.push(
-		new Camera(
-			scene, 
-			sceneCameras[1], 
-			cameraPitchControllers[1],
-			cameraYawControllers[1],
-			[[10, -120], [10, -180], [45, -180], [45, -120]],
-			Math.PI / 24,
-			0.3
-		)
-	);
-
-	cameras.map((e) => { e.setVisible(false); });
-	currentCamera = 0;
-
-	aiming = false;
-	
-	debugCam = new THREE.PerspectiveCamera(45, 2, 0.1, 10000);
-	debugCam.position.set(0, 5, 0);
-
-	viewingCamera = (debug ? debugCam : cameras[currentCamera].getCamera());
-
-	const canvas = document.getElementById("gl-canvas");
-	renderManager = new RenderManager(scene, canvas, viewingCamera);
-
-	renderManager.setScreenFX(!debug);
-	
-	createControls(debugCam, canvas);
-
-	ambLight = new THREE.AmbientLight( 0x404040, (debug ? 0.5 : 0));
-	scene.add(ambLight);
-
-	laser = new Laser(scene);
-
 	window.addEventListener("resize", onWindowResize);
 	onWindowResize();
-	
-	pointer = new Vector2();
-	window.addEventListener("pointermove", onPointerMove);
-	window.addEventListener("pointerdown", onPointerDown);
 
-	window.addEventListener("keydown", onKeyDown);
-
-	helpers.push(new THREE.PointLightHelper(laser.laserLight));
-	helpers.push(new THREE.SpotLightHelper(laser.laserPointer));
-
-	cameras.map((e) => {
-		helpers = helpers.concat([
-			new THREE.SpotLightHelper(e.getLight()),
-			new THREE.CameraHelper(e.getCamera())
-		])
-	});
-	
-	helpers.map((e) => { scene.add(e); });
-
-	if (!debug)
-		helpers.map(function(e) { e.visible = false; });
+	uiManager = new UIManager();
+	uiManager.setLevelLoadFunc(displayLevel);
+	displayLevel(0);
 
 	requestAnimationFrame(render);
+
 }
 
 function onWindowResize()
 {
     const aspect = window.innerWidth / window.innerHeight;
 
-    cameras.map((e) => { e.getCamera().aspect = aspect; });
     debugCam.aspect = aspect;
-    cameras.map((e) => { e.getCamera().updateProjectionMatrix(); });
     debugCam.updateProjectionMatrix();
+
+	menuCam.aspect = aspect;
+    menuCam.updateProjectionMatrix();
+
+	levelLoader.getLevels().map((e) => {
+		if (e != null) {
+			e.cameras.map((x) => { x.getCamera().aspect = aspect; });
+			e.cameras.map((x) => { x.getCamera().updateProjectionMatrix(); });
+		}
+	});
 
     renderManager.setRenderSize(window.innerWidth, window.innerHeight);
 }
@@ -219,29 +112,95 @@ function render()
     const delta = clock.getDelta()
     controls.update(delta);
 
-    laser.update();
-    cameras.map(e => e.update());
-	interactables.map(e => e.update(cameras[currentCamera]));
-	quantumGroups.map(e => e.update());
-
-	const observed = [];
-
-	for (var i = 0; i < interactables.length; i++)
-		if (interactables[i].isObserved() && interactables[i].getObject().visible)
-			observed.push(interactables[i].getObject());
-
-    raycaster.setFromCamera(pointer, viewingCamera);
-
-    const intersects = raycaster.intersectObjects(observed);
-
-    if (intersects[0] == null)
-        selection = null;
-    else
-		selection = intersects[0];
+	if (lvl != null)
+		updateLevel(delta);
     
     renderManager.render();
 	
     requestAnimationFrame(render);
+}
+
+function displayLevel(levelNum)
+{
+	if (levelNum == 0)
+	{
+		menuCam.visible = true;
+
+		if (lvl != null)
+		{
+			lvl.cameras.map((e) => { e.reset(); e.setActive(false); });
+			lvl.scene.visible = false;
+		}
+
+		uiManager.displayStartScreen();
+
+		lvl = null;
+	}
+	else
+	{
+		menuCam.visible = false;
+
+		if (lvl != null)
+		{
+			lvl.cameras.map((e) => { e.reset(); e.setActive(false); });
+			lvl.scene.visible = false;
+		}
+
+		lvl = levelLoader.getLevel(levelNum);
+
+		score = 0;
+		lives = 3;
+		timeLeft = 600;
+
+		currentCamera = 0;
+		aiming = false;
+
+		lvl.cameras.map((e) => { e.setMoving(true); });
+		lvl.cameras[currentCamera].setVisible(true);
+
+		if (!debug)
+		{
+			viewingCamera = lvl.cameras[currentCamera].getCamera();
+			renderManager.setCamera(viewingCamera);
+		}
+
+		uiManager.setScoreGoal(lvl.quantumGroups.length);
+		uiManager.setLives(lives);
+		uiManager.setCameraCount(currentCamera + 1);
+		uiManager.setTimer(timeLeft);
+
+		uiManager.displayCameraScreen();
+
+		lvl.helpers.map((e) => { e.visible = debug });
+
+		lvl.scene.visible = true;
+	}
+}
+
+function updateLevel(delta)
+{
+	timeLeft -= delta;
+	uiManager.setTimer(timeLeft);
+
+	laser.update();
+	lvl.cameras.map(e => e.update());
+	lvl.interactables.map(e => e.update(lvl.cameras[currentCamera]));
+	lvl.quantumGroups.map(e => e.update());
+
+	const observed = [];
+
+	for (var i = 0; i < lvl.interactables.length; i++)
+		if (lvl.interactables[i].isObserved() && lvl.interactables[i].getObject().visible)
+			observed.push(lvl.interactables[i].getObject());
+
+	raycaster.setFromCamera(pointer, viewingCamera);
+
+	const intersects = raycaster.intersectObjects(observed);
+
+	if (intersects[0] == null)
+		selection = null;
+	else
+		selection = intersects[0];
 }
 
 function createControls(camera, canvas) 
@@ -261,11 +220,11 @@ function onPointerMove(event)
 
 function onPointerDown(event) 
 {
-    if (selection != null && !laser.isActive() && !cameras[currentCamera].isAnimating() && aiming)
+    if (lvl != null && selection != null && !laser.isActive() && !lvl.cameras[currentCamera].isAnimating() && aiming)
     {
         var target = selection.object;
 		
-		while (interactableMap[target.name] == null)
+		while (lvl.interactableMap[target.name] == null)
 		{
 			target = target.parent;
 
@@ -273,14 +232,14 @@ function onPointerDown(event)
 				return;
 		}
 
-		const obj = interactableMap[target.name];
+		const obj = lvl.interactableMap[target.name];
 
         const objPos = getWorldPosition(obj.getObject());
 
         // Source of beam must be slightly offset from underneath
         //  the camera FOR SOME REASON otherwise it doesn't display
         const source = new Vector3(0, -0.1, -0.1);
-        cameras[currentCamera].getLight().localToWorld(source);
+        lvl.cameras[currentCamera].getLight().localToWorld(source);
         
         const dir = new Vector3();
         dir.subVectors(objPos, source).normalize();
@@ -288,25 +247,26 @@ function onPointerDown(event)
 
         const hitPoint = selection.point;
         
-		quantumGroups.map(e => e.setMoving(false));
-        cameras[currentCamera].lightOff(() => { 
+		lvl.quantumGroups.map(e => e.setMoving(false));
+        lvl.cameras[currentCamera].lightOff(() => { 
             laser.fire(source, hitPoint, () => {
 				if (obj.getQuantumGroup() != -1)
 				{
-					quantumGroups[obj.getQuantumGroup()].setActive(false);
-					console.log(++score);
-					if (score == quantumGroups.length)
+					lvl.quantumGroups[obj.getQuantumGroup()].setActive(false);
+					uiManager.setScore(++score);
+					if (score == lvl.quantumGroups.length)
 						console.log("You win!");
 				}
 				else
 				{
 					obj.getObject().visible = false;
+					uiManager.setLives(--lives);
 					console.log("oops");
 				}
-                cameras[currentCamera].lightOn(() => { 
+                lvl.cameras[currentCamera].lightOn(() => { 
 					aiming = false;
-                    cameras[currentCamera].setMoving(true); 
-					quantumGroups.map(e => e.setMoving(true));
+                    lvl.cameras[currentCamera].setMoving(true); 
+					lvl.quantumGroups.map(e => e.setMoving(true));
                 }); 
             }); 
         });
@@ -317,28 +277,30 @@ function onKeyDown(event)
 {
     var keyCode = event.which;
     
-	if (keyCode == 32) // Space
+	if (keyCode == 32 && lvl != null) // Space
 	{
 		if (aiming)
 		{
 			aiming = false;
-			cameras[currentCamera].setMoving(true);
+			lvl.cameras[currentCamera].setMoving(true);
 		}
 		else
 		{
 			aiming = true;
-			cameras[currentCamera].setMoving(false);
+			lvl.cameras[currentCamera].setMoving(false);
 		}
 	}
-	else if (keyCode == 16) // shift key
+	else if (keyCode == 16 && lvl != null) // shift key
     {
-		cameras[currentCamera].setVisible(false);
-        currentCamera = (currentCamera + 1) % cameras.length;
-		cameras[currentCamera].setVisible(true);
+		lvl.cameras[currentCamera].setVisible(false);
+        currentCamera = (currentCamera + 1) % lvl.cameras.length;
+		lvl.cameras[currentCamera].setVisible(true);
+
+		uiManager.setCameraCount(currentCamera + 1);
 
 		if (!debug)
 		{
-			viewingCamera = cameras[currentCamera].getCamera();
+			viewingCamera = lvl.cameras[currentCamera].getCamera();
 			renderManager.setCamera(viewingCamera);
 		}
     }
@@ -346,31 +308,43 @@ function onKeyDown(event)
     {
         if (debug)
         {
-            viewingCamera = cameras[currentCamera].getCamera();
+			if (lvl == null)
+				viewingCamera = menuCam;
+			else
+            	viewingCamera = lvl.cameras[currentCamera].getCamera();
             debug = false;
-            helpers.map(function(e) { e.visible = false; });
+            helpers.map((e) => { e.visible = false; });
+			lvl.helpers.map((e) => { e.visible = false });
             ambLight.intensity = 0;
 
 			renderManager.setCamera(viewingCamera);
 			renderManager.setScreenFX(true);
+
+			uiManager.setUIVisible(true);
         }
         else
         {
             viewingCamera = debugCam;
             debug = true;
-            helpers.map(function(e) { e.visible = true; });
+            helpers.map((e) => { e.visible = true; });
+			lvl.helpers.map((e) => { e.visible = true });
             ambLight.intensity = 0.5;
 
 			renderManager.setCamera(viewingCamera);
 			renderManager.setScreenFX(false);
+			
+			uiManager.setUIVisible(false);
+
+			debugCam.position.set(0, 5, 0);
+			debugCam.rotation.set(0, 0, 0);
         }
     }
-	else if (keyCode == 115)
-	{
-		console.log("loading room 1");
-		room1.visible = true;
-		
-		cameras[currentCamera].setActive(true);
+	else if (keyCode == 115) // F4 key
+    {
+		if (lvl == null)
+			displayLevel(1);
+		else
+			displayLevel(0);
 	}
 }
 

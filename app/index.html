@@ -17,6 +17,9 @@
 				color: #e3e35e;
 				border-color: #e3e35e;
 				font-family: Minecraft;
+				-webkit-user-select: none; /* Safari */
+				-ms-user-select: none; /* IE 10 and IE 11 */
+				user-select: none;
 			}
 
 			#canvas-wrap 
@@ -45,7 +48,7 @@
 
 			#menuUI
 			{
-				visibility: hidden;
+				display: none;
 			}
 
 			#menuUI #title
@@ -98,17 +101,17 @@
 
 			#introUI1
 			{
-				visibility: hidden;
+				display: none;
 			}
 
 			#introUI2
 			{
-				visibility: hidden;
+				display: none;
 			}
 
 			#introUI3
 			{
-				visibility: hidden;
+				display: none;
 			}
 			
 			.pageCard
@@ -138,7 +141,7 @@
 
 			#cameraUI
 			{
-				visibility: visible;
+				display: none;
 			}
 
 			#cameraUI #camCount
@@ -167,7 +170,7 @@
 			#cameraUI #lifeBar1
 			{
 				bottom: 109px;
-				left: 117px;
+				left: 61px;
 			}
 
 			#cameraUI #lifeBar2
@@ -179,13 +182,7 @@
 			#cameraUI #lifeBar3
 			{
 				bottom: 109px;
-				left: 61px;
-			}
-
-			#cameraUI #lifeBar3
-			{
-				bottom: 109px;
-				left: 61px;
+				left: 117px;
 			}
 
 			#cameraUI #scoreText
@@ -246,7 +243,7 @@
 				<br>
 				We're gonna start you off in the chief researcher's office, and then take a look at one of our quantum labs. We're getting readings all over the place, but they seem particularly strong in these two locations. Now remember, you're looking for regular objects that seem to move around when you're not looking. Take a good long look and light em up if you see one. Remember, we're draining power by the second so you're on the clock, good luck Chief.
 			</div>
-			<button id="page1Next" class="nextButton">
+			<button id="page2Next" class="nextButton">
 				Next Page
 			</button>
 		</div>
@@ -266,7 +263,7 @@
 				<br>
 				You'll be shown how many enemies you've destroyed and how many there are in the room in total. Destroy them all before the timer runs out to win!
 			</div>
-			<button id="page1Next" class="nextButton">
+			<button id="page3Next" class="nextButton">
 				Back
 			</button>
 		</div>

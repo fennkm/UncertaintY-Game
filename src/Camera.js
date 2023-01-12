@@ -34,10 +34,8 @@ export class Camera
     currentCallback;
     animating;
 
-    constructor(scene, camera, pitchController, yawController, rotationValues, rotationSpeed, pauseLength)
+    constructor(camera, pitchController, yawController, rotationValues, rotationSpeed, pauseLength)
     {
-        this.scene = scene;
-
         this.camera = camera;
 
         this.pitchController = pitchController;
@@ -158,11 +156,6 @@ export class Camera
         this.pitchAnimAction.play();
         this.yawAnimAction.play();
 
-        const delta = this.clock.getDelta();
-        
-        this.pitchAnimMixer.update(delta);
-        this.yawAnimMixer.update(delta);
-
         this.animating = false;
 
         const lightOnKeyFrames = new THREE.NumberKeyframeTrack(".intensity", this.onAnimTimes, this.lightOnAnimValues, THREE.InterpolateDiscrete);
@@ -258,6 +251,14 @@ export class Camera
         }
 
         this.moving = isMoving;
+    }
+
+    reset()
+    {
+        this.yawAnimMixer.time = 0;
+        this.pitchAnimMixer.time = 0;
+        this.yawAnimAction.time = 0;
+        this.pitchAnimAction.time = 0;
     }
 
     setVisible(val)
