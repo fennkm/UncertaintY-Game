@@ -4,15 +4,294 @@
 		<meta charset="utf-8">
 		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
 		<style>
+			@font-face 
+			{ 
+				font-family: "Minecraft";
+				src: url("../assets/gui/fonts/Minecraft.woff") format("woff");
+			}
+
 			body 
 			{
 				margin: 0;
 				overflow: hidden;
+				color: #e3e35e;
+				border-color: #e3e35e;
+				font-family: Minecraft;
 			}
+
+			#canvas-wrap 
+			{ 
+				position: relative;
+				width: 100%;
+				height: 100%;
+			}
+
+			#canvas-wrap *
+			{
+				position: absolute;
+			}
+
+			#gl-canvas
+			{ 
+				z-index: 0;
+			}
+
+			.ui
+			{
+				width: 100%;
+				height: 100%;
+				z-index: 1;
+			}
+
+			#menuUI
+			{
+				visibility: hidden;
+			}
+
+			#menuUI #title
+			{
+				top: 150px;
+				width: 100%;
+				font-size: 160px;
+				text-align: center;
+			}
+
+			button
+			{
+				font-family: Minecraft;
+				color: #e3e35e;
+				background: transparent;
+				border-width: 3px;
+				border-color: transparent;
+				border-style: solid;
+				padding: 10px 10px 0px 10px;
+			}
+
+			button:hover
+			{
+				border-color: #e3e35e;
+			}
+
+			#menuUI button
+			{
+				margin-left: calc(50% - 200px);
+				margin-right: calc(50% - 200px);
+				width: 400px;
+				font-size: 50px;
+				text-align: center;
+			}
+
+			#menuUI #option1
+			{
+				top: 400px;
+			}
+
+			#menuUI #option2
+			{
+				top: 500px;
+			}
+
+			#menuUI #option3
+			{
+				top: 600px;
+			}
+
+			#introUI1
+			{
+				visibility: hidden;
+			}
+
+			#introUI2
+			{
+				visibility: hidden;
+			}
+
+			#introUI3
+			{
+				visibility: hidden;
+			}
+			
+			.pageCard
+			{
+				top : 40px;
+				text-align: center;
+				width: 100%;
+				font-size: 50px;
+			}
+			
+			.text
+			{
+				top: 100px;
+				padding: 50px;
+				font-size: 30px;
+			}
+			
+			.nextButton
+			{
+				margin-left: calc(50% - 200px);
+				margin-right: calc(50% - 200px);
+				width: 400px;
+				font-size: 50px;
+				text-align: center;
+				bottom: 60px;
+			}
+
+			#cameraUI
+			{
+				visibility: visible;
+			}
+
+			#cameraUI #camCount
+			{
+				width: 150px;
+				font-size: 60px;
+				top: 30px;
+				left: 20px;
+				text-align: center;
+			}
+
+			#cameraUI #timer
+			{
+				font-size: 60px;
+				top: 50px;
+				right: 40px;
+				text-align: right;
+			}
+
+			#cameraUI #lifeContainer
+			{
+				bottom: 120px;
+				left: 50px;
+			}
+
+			#cameraUI #lifeBar1
+			{
+				bottom: 109px;
+				left: 117px;
+			}
+
+			#cameraUI #lifeBar2
+			{
+				bottom: 109px;
+				left: 89px;
+			}
+
+			#cameraUI #lifeBar3
+			{
+				bottom: 109px;
+				left: 61px;
+			}
+
+			#cameraUI #lifeBar3
+			{
+				bottom: 109px;
+				left: 61px;
+			}
+
+			#cameraUI #scoreText
+			{
+				font-size: 50px;
+				bottom: 45px;
+				right: 50px;
+				padding: 14px 14px 0px 14px;
+				border-width: 3px;
+				border-style: solid;
+				text-align: right;
+			}
+
 		</style>
 		<script src="../build/bundle.js" defer></script>
 	</head>
 <body>
-	<canvas id="gl-canvas" width="1024" height="1024"></canvas>
+	<div id="canvas-wrap">
+		<canvas id="gl-canvas" width="1024" height="1024"></canvas>
+		<div id="menuUI" class="ui">
+			<div id="title">
+				UncertaintY
+			</div>
+			<button id="option1">
+				How to Play
+			</button>
+			<button id="option2">
+				Level 1
+			</button>
+			<button id="option3">
+				Level 2
+			</button>
+		</div>
+		<div id="introUI1" class="ui">
+			<div class="pageCard">
+				Page 1/3
+			</div>
+			<div class="text">
+				Oh thank god you're here! You're the chief of security right…? We've got a bit of a situation going on if you hadn't already noticed, there's been an unfortunate… incident… in the labs. We've been working on some fascinating research into macroscopic quantum behaviour, really riveting stuff I tell you, and we had just started to move on to animal testing and well um… long story short there's been a breach in containment.
+				<br>
+				<br>
+				We've got god-knows-what running around the labs, and what's worse is they've somehow taken out the main power grid. We've managed to rig up an auxiliary generator with just enough juice to access the security camera network, we hooked it up and... nothing. Can't see hide nor hair of the experiments, and more worryingly, nor the scientists working on them. Now Professor Lynn has helpfully informed us that this is due to a peculiar quirk of these test subjects.
+				<br>
+				<br>
+				I'm not an expert on this, I'm with the gravity team for heaven's sake, but it seems these entities are able to arrange their atoms at will to assume the form of any object they want. And this makes them rather hard to track down. However, I have also been informed that even in this disguised state, these entities still exhibit certain quantum behaviours. Namely, these buggers will enter a state of superposition when not directly observed. All you need to know is they will seem to errr… "jump around" a bit when you take your eyes off them.
+			</div>
+			<button id="page1Next" class="nextButton">
+				Next Page
+			</button>
+		</div>
+		<div id="introUI2" class="ui">
+			<div class="pageCard">
+				Page 2/3
+			</div>
+			<div class="text">
+				That's where you come in. I know I complained when our hard-earned budget was being spent on automated weapons systems for the entire facility, but it seems like now is the perfect time to give it a run for its money. But be careful, make every shot count. We only have enough juice for a handful of misfires, and what's worse, if we run out of power and lose the lights, these creatures are gonna have full run of the place, completely unobserved. And I don't fancy finding out what happened to the other team members quite yet.
+				<br>
+				<br>
+				We're gonna start you off in the chief researcher's office, and then take a look at one of our quantum labs. We're getting readings all over the place, but they seem particularly strong in these two locations. Now remember, you're looking for regular objects that seem to move around when you're not looking. Take a good long look and light em up if you see one. Remember, we're draining power by the second so you're on the clock, good luck Chief.
+			</div>
+			<button id="page1Next" class="nextButton">
+				Next Page
+			</button>
+		</div>
+		<div id="introUI3" class="ui">
+			<div class="pageCard">
+				Page 3/3
+			</div>
+			<div class="text">
+				To play, watch the cameras and observe carefully, some objects will move to a new position while you aren't looking.
+				<br>
+				<br>
+				Swap cameras using [SHIFT] to get a better look at the room. You can also stop the camera by using [SPACE]. You can start it moving again by hitting [SPACE] again.
+				<br>
+				<br>
+				While the camera is stopped you can click on an object to fire your laser at it. Be careful to only use this on enemies, incorrect shots will drain your battery. Too many and it's game over.
+				<br>
+				<br>
+				You'll be shown how many enemies you've destroyed and how many there are in the room in total. Destroy them all before the timer runs out to win!
+			</div>
+			<button id="page1Next" class="nextButton">
+				Back
+			</button>
+		</div>
+		<div id="cameraUI" class="ui">
+			<div id="camCount">
+				CAM 1
+			</div>
+			<div id="timer">
+				00:00
+			</div>
+			<div id="lifeContainer">
+				<img src="../assets/gui/sprites/BatteryOutline.png">
+			</div>
+			<div id="lifeBar1">
+				<img src="../assets/gui/sprites/BatterySegment.png">
+			</div>
+			<div id="lifeBar2">
+				<img src="../assets/gui/sprites/BatterySegment.png">
+			</div>
+			<div id="lifeBar3">
+				<img src="../assets/gui/sprites/BatterySegment.png">
+			</div>
+			<div id="scoreBox"></div>
+			<div id="scoreText">0 / 0</div>
+		</div>
+	</div>
 </body>
 </html>
