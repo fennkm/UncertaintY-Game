@@ -6,10 +6,18 @@ import * as PP from 'postprocessing';
 export class RenderManager
 {
     renderer;
+    camera
 
     fxComposer;
     screenEffect;
     renderPass;
+
+    noiseFX;
+    lineFX;
+    vignetteFX;
+
+    staticFX;
+    staticScreen;
 
     screenFXActive;
 
@@ -23,34 +31,51 @@ export class RenderManager
         this.camera = camera;
 		this.fxComposer = new PP.EffectComposer(this.renderer);
 
-        this.renderPass = new PP.RenderPass(scene, camera)
+        this.renderPass = new PP.RenderPass(scene, this.camera)
 		this.fxComposer.addPass(this.renderPass);
 
-		const noiseFX = new PP.NoiseEffect();
-		noiseFX.blendMode = new PP.BlendMode(PP.BlendFunction.ALPHA, 0.06);
+		this.noiseFX = new PP.NoiseEffect();
+		this.noiseFX.blendMode = new PP.BlendMode(PP.BlendFunction.ALPHA, 0.2);
 
-		const lineFX = new PP.ScanlineEffect({ density: 0.4 });
-		lineFX.blendMode = new PP.BlendMode(PP.BlendFunction.ALPHA, 0.004);
+		this.lineFX = new PP.ScanlineEffect({ density: 0.4 });
+		this.lineFX.blendMode = new PP.BlendMode(PP.BlendFunction.ALPHA, 0.01);
 		
-		const vignetteFX = new PP.VignetteEffect({ darkness: 1 });
-		vignetteFX.blendMode = new PP.BlendMode(PP.BlendFunction.ALPHA, 0.6);
+		this.vignetteFX = new PP.VignetteEffect({ darkness: 1 });
+		this.vignetteFX.blendMode = new PP.BlendMode(PP.BlendFunction.ALPHA, 0.6);
 
-		this.screenEffect = new PP.EffectPass(camera, 
-			noiseFX,
-			lineFX,
-			vignetteFX
+		this.staticFX = new PP.NoiseEffect();
+		this.staticFX.blendMode = new PP.BlendMode(PP.BlendFunction.ALPHA, 1);
+
+		this.screenEffect = new PP.EffectPass(this.camera, 
+			this.noiseFX,
+			this.lineFX,
+			this.vignetteFX
 		);
 
-		this.fxComposer.addPass(this.screenEffect);
+        this.staticScreen = new PP.EffectPass(this.camera,
+            this.staticFX
+        );
 
+		this.fxComposer.addPass(this.screenEffect);
+        
         this.screenFXActive = true;
+    }
+
+    playStatic()
+    {
+        this.fxComposer.addPass(this.staticScreen);
+
+        setTimeout(() => { 
+            console.log("beep");
+            this.fxComposer.removePass(this.staticScreen);
+        }, 1000);
     }
 
     setCamera(camera)
     {
         this.camera = camera;
         
-        this.fxComposer.setMainCamera(camera);
+        this.fxComposer.setMainCamera(this.camera);
     }
 
     setScreenFX(val)

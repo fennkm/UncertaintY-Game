@@ -13,7 +13,7 @@ let renderManager, uiManager;
 let viewingCamera, currentCamera, menuCam, debugCam;
 let controls, clock;
 let pointer, raycaster, laser, selection;
-let aiming, lives, score, timeLeft;
+let aiming, lives, score, timeLeft, timerRunning;
 
 var debug = false;
 var helpers;
@@ -45,7 +45,7 @@ class App
 
 		renderManager.setScreenFX(!debug);
 
-		ambLight = new THREE.AmbientLight( 0x404040, (debug ? 0.5 : 0));
+		ambLight = new THREE.AmbientLight( 0x404040, (debug ? 1 : 0));
 		scene.add(ambLight);
 
 		laser = new Laser(scene);
@@ -151,6 +151,7 @@ function displayLevel(levelNum)
 		score = 0;
 		lives = 3;
 		timeLeft = 600;
+		timerRunning = true;
 
 		currentCamera = 0;
 		aiming = false;
@@ -179,8 +180,29 @@ function displayLevel(levelNum)
 
 function updateLevel(delta)
 {
-	timeLeft -= delta;
-	uiManager.setTimer(timeLeft);
+	if (timerRunning)
+	{
+		timeLeft -= delta;
+
+		if (timeLeft <= 0)
+		{
+			lvl.cameras.map((e) => { e.setMoving(false); });
+
+			setTimeout(() => {
+				lvl.cameras[currentCamera].lightOff(() => { 
+					setTimeout(() => { 
+						displayLevel(0);
+					}, 3000);
+				});
+			}, 2000);
+			
+			
+			timerRunning = false;
+			timeLeft = 0;
+		}
+
+		uiManager.setTimer(timeLeft);
+	}
 
 	laser.update();
 	lvl.cameras.map(e => e.update());
@@ -255,19 +277,37 @@ function onPointerDown(event)
 					lvl.quantumGroups[obj.getQuantumGroup()].setActive(false);
 					uiManager.setScore(++score);
 					if (score == lvl.quantumGroups.length)
-						console.log("You win!");
+					{
+						lvl.cameras[currentCamera].lightOn(() => {
+							setTimeout(() => { displayLevel(0); }, 3000);
+							timerRunning = false;
+						});
+					}
+					else
+						lvl.cameras[currentCamera].lightOn(() => {
+							aiming = false;
+							lvl.cameras[currentCamera].setMoving(true); 
+							lvl.quantumGroups.map(e => e.setMoving(true));
+						});
 				}
 				else
 				{
 					obj.getObject().visible = false;
 					uiManager.setLives(--lives);
-					console.log("oops");
+
+					if (lives == 0)
+					{
+						lvl.cameras.map((e) => { e.setMoving(false); });
+						setTimeout(() => { displayLevel(0); }, 3000);
+						timerRunning = false;
+					}
+					else
+						lvl.cameras[currentCamera].lightOn(() => {
+							aiming = false;
+							lvl.cameras[currentCamera].setMoving(true); 
+							lvl.quantumGroups.map(e => e.setMoving(true));
+						});
 				}
-                lvl.cameras[currentCamera].lightOn(() => { 
-					aiming = false;
-                    lvl.cameras[currentCamera].setMoving(true); 
-					lvl.quantumGroups.map(e => e.setMoving(true));
-                }); 
             }); 
         });
     }
@@ -302,6 +342,7 @@ function onKeyDown(event)
 		{
 			viewingCamera = lvl.cameras[currentCamera].getCamera();
 			renderManager.setCamera(viewingCamera);
+			renderManager.playStatic();
 		}
     }
     else if (keyCode == 113) // F2 key
@@ -319,7 +360,6 @@ function onKeyDown(event)
 
 			renderManager.setCamera(viewingCamera);
 			renderManager.setScreenFX(true);
-
 			uiManager.setUIVisible(true);
         }
         else
