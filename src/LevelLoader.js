@@ -24,7 +24,7 @@ export class LevelLoader
     {
         while (this.levels.length < levelNum - 1) this.levels.push(null);
 
-        const loadSizes = [161974288];
+        const loadSizes = [147151252, 118350460];
 
         if (levelNum > loadSizes.length)
             console.error("No load size defined for level " + levelNum);
@@ -38,7 +38,8 @@ export class LevelLoader
                 callback();
 			},
 			(xhr) => {
-				console.log(Math.trunc((xhr.loaded * 100) / loadSizes[levelNum - 1]) + "% loaded");
+				// console.log(Math.trunc((xhr.loaded * 100) / loadSizes[levelNum - 1]) + "% loaded");
+				console.log(xhr.loaded);
 			},
 			(error) => {
 				console.log(error);
@@ -88,6 +89,7 @@ export class LevelLoader
                     cameraYawControllers[0],
                     [[10, -5], [10, -90], [35, -90], [35, -5]],
                     Math.PI / 24,
+                    Math.PI / 12,
                     0.3
                 )
             );
@@ -99,6 +101,45 @@ export class LevelLoader
                     cameraYawControllers[1],
                     [[10, -120], [10, -180], [45, -180], [45, -120]],
                     Math.PI / 24,
+                    Math.PI / 12,
+                    0.3
+                )
+            );
+        }
+        else if (levelNum == 2)
+        {
+            cameras.push(
+                new Camera(
+                    sceneCameras[0], 
+                    cameraPitchControllers[0],
+                    cameraYawControllers[0],
+                    [[10, -120], [10, -180], [35, -180], [35, -120]],
+                    Math.PI / 24,
+                    Math.PI / 12,
+                    0.3
+                )
+            );
+        
+            cameras.push(
+                new Camera(
+                    sceneCameras[1], 
+                    cameraPitchControllers[1],
+                    cameraYawControllers[1],
+                    [[10, 0], [10, -140], [45, -140], [45, 0]],
+                    Math.PI / 24,
+                    Math.PI / 12,
+                    0.3
+                )
+            );
+        
+            cameras.push(
+                new Camera(
+                    sceneCameras[2], 
+                    cameraPitchControllers[2],
+                    cameraYawControllers[2],
+                    [[10, 0], [10, -140], [45, -140], [45, 0]],
+                    Math.PI / 24,
+                    Math.PI / 10,
                     0.3
                 )
             );

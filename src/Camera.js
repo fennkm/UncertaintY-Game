@@ -34,7 +34,7 @@ export class Camera
     currentCallback;
     animating;
 
-    constructor(camera, pitchController, yawController, rotationValues, rotationSpeed, pauseLength)
+    constructor(camera, pitchController, yawController, rotationValues, rotationSpeed, lightAngle, pauseLength)
     {
         this.camera = camera;
 
@@ -99,7 +99,7 @@ export class Camera
             yawAnimValues = yawAnimValues.concat(q2.toArray());
         }
 
-        this.light = new THREE.SpotLight( 0xddddff, 1, undefined, Math.PI / 12, 0.2);
+        this.light = new THREE.SpotLight( 0xddddff, 1, undefined, lightAngle, 0.2);
         this.light.position.set(0, -0.3, 0);
     
         this.light.castShadow = true;
@@ -115,7 +115,7 @@ export class Camera
 
 	    this.camera.add(this.light);
 
-        this.innerLight = new THREE.SpotLight( 0xffffff, 2, undefined, Math.PI / 16, 0.6);
+        this.innerLight = new THREE.SpotLight( 0xffffff, 2, undefined, lightAngle * 0.75, 0.6);
         this.innerLight.position.set(0, 0, 0);
 
         this.innerLight.castShadow = true;

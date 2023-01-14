@@ -70,7 +70,11 @@ class App
 			helpers.map((e) => { e.visible = false; });
 
 		levelLoader = new LevelLoader(scene);
-		levelLoader.loadLevel(1, () => { onGameLoad(); });
+		levelLoader.loadLevel(1, () => { 
+			levelLoader.loadLevel(2, () => { 
+				onGameLoad(); 
+			}); 
+		});
 	}
 }
 
@@ -150,7 +154,12 @@ function displayLevel(levelNum)
 
 		score = 0;
 		lives = 3;
-		timeLeft = 600;
+
+		if (levelNum == 1)
+			timeLeft = 600;
+		else if (levelNum == 2)
+			timeLeft = 900;
+
 		timerRunning = true;
 
 		currentCamera = 0;
@@ -317,7 +326,7 @@ function onKeyDown(event)
 {
     var keyCode = event.which;
     
-	if (keyCode == 32 && lvl != null) // Space
+	if (keyCode == 32 && lvl != null && !laser.isActive() && !lvl.cameras[currentCamera].isAnimating()) // Space
 	{
 		if (aiming)
 		{
@@ -330,8 +339,9 @@ function onKeyDown(event)
 			lvl.cameras[currentCamera].setMoving(false);
 		}
 	}
-	else if (keyCode == 16 && lvl != null) // shift key
+	else if (keyCode == 16 && lvl != null && !laser.isActive() && !lvl.cameras[currentCamera].isAnimating()) // shift key
     {
+		lvl.cameras[currentCamera].setMoving(true);
 		lvl.cameras[currentCamera].setVisible(false);
         currentCamera = (currentCamera + 1) % lvl.cameras.length;
 		lvl.cameras[currentCamera].setVisible(true);
@@ -379,13 +389,6 @@ function onKeyDown(event)
 			debugCam.rotation.set(0, 0, 0);
         }
     }
-	else if (keyCode == 115) // F4 key
-    {
-		if (lvl == null)
-			displayLevel(1);
-		else
-			displayLevel(0);
-	}
 }
 
 function getWorldPosition(obj)

@@ -66,7 +66,6 @@ export class RenderManager
         this.fxComposer.addPass(this.staticScreen);
 
         setTimeout(() => { 
-            console.log("beep");
             this.fxComposer.removePass(this.staticScreen);
         }, 1000);
     }
