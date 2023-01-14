@@ -7,9 +7,10 @@ import { Laser } from './Laser.js';
 import { LevelLoader } from './LevelLoader.js';
 import { RenderManager } from './RenderManager.js';
 import { UIManager } from './UIManager.js';
+import { AudioManager } from './AudioManger.js';
 
 let scene, lvl, levelLoader, ambLight;
-let renderManager, uiManager;
+let renderManager, uiManager, audioManager;
 let viewingCamera, currentCamera, menuCam, debugCam;
 let controls, clock;
 let pointer, raycaster, laser, selection;
@@ -28,6 +29,8 @@ class App
 		scene.background = new THREE.Color('black');
 
 		clock = new THREE.Clock();
+
+		audioManager = new AudioManager(scene);
 
 		raycaster = new THREE.Raycaster();
 
@@ -69,7 +72,7 @@ class App
 		if (!debug)
 			helpers.map((e) => { e.visible = false; });
 
-		levelLoader = new LevelLoader(scene);
+		levelLoader = new LevelLoader(scene, audioManager);
 		levelLoader.loadLevel(1, () => { 
 			levelLoader.loadLevel(2, () => { 
 				onGameLoad(); 
@@ -83,12 +86,12 @@ function onGameLoad()
 	window.addEventListener("resize", onWindowResize);
 	onWindowResize();
 
-	uiManager = new UIManager();
+	uiManager = new UIManager(audioManager);
 	uiManager.setLevelLoadFunc(displayLevel);
+
 	displayLevel(0);
 
 	requestAnimationFrame(render);
-
 }
 
 function onWindowResize()
@@ -214,7 +217,7 @@ function updateLevel(delta)
 	}
 
 	laser.update();
-	lvl.cameras.map(e => e.update());
+	lvl.cameras.map(e => e.update(e == lvl.cameras[currentCamera]));
 	lvl.interactables.map(e => e.update(lvl.cameras[currentCamera]));
 	lvl.quantumGroups.map(e => e.update());
 

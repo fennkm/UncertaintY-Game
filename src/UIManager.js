@@ -9,6 +9,8 @@ export class UIManager
     introButton;
     lvl1Button;
     lvl2Button;
+    soundOnBtn;
+    soundOffBtn;
 
     introPage1;
     nextButton1;
@@ -26,12 +28,16 @@ export class UIManager
     score;
     scoreGoal;
 
-    constructor()
+    constructor(audioManger)
     {
+        this.audioManger = audioManger;
+
         this.menuUI = document.getElementById("menuUI");
         this.introButton = document.getElementById("option1");
         this.lvl1Button = document.getElementById("option2");
         this.lvl2Button = document.getElementById("option3");
+        this.soundOnBtn = document.getElementById("soundOn");
+        this.soundOffBtn = document.getElementById("soundOff");
 
         this.introPage1 = document.getElementById("introUI1");
         this.nextButton1 = document.getElementById("page1Next");
@@ -57,16 +63,59 @@ export class UIManager
 
         this.visible = true;
 
-        this.introButton.onclick = () => { this.displayIntro(0); }; 
-        this.nextButton1.onclick = () => { this.displayIntro(1); }; 
-        this.nextButton2.onclick = () => { this.displayIntro(2); }; 
-        this.nextButton3.onclick = () => { this.displayStartScreen(); }; 
+        const buttons = document.getElementsByClassName("button");
+        
+        for (var i = 0; i < buttons.length; i++)
+            buttons[i].onmouseover = () => {
+                this.audioManger.playHoverSound(() => {});
+            };
+
+        this.introButton.onclick = () => { 
+            this.audioManger.playClickSound(() => {});
+            this.displayIntro(0); 
+        };
+
+        this.nextButton1.onclick = () => { 
+            this.audioManger.playClickSound(() => {});
+            this.displayIntro(1);
+        }; 
+
+        this.nextButton2.onclick = () => { 
+            this.audioManger.playClickSound(() => {});
+            this.displayIntro(2);
+        }; 
+        
+        this.nextButton3.onclick = () => {
+            this.audioManger.playClickSound(() => {});
+            this.displayStartScreen();
+        }; 
+
+        this.soundOnBtn.onclick = () => { 
+            this.soundOnBtn.style.display = "none";
+            this.audioManger.setSound(false);
+            this.soundOffBtn.style.display = "block";
+        };
+
+        this.soundOffBtn.onclick = () => {
+            this.soundOffBtn.style.display = "none";
+            this.audioManger.setSound(true);
+            this.soundOnBtn.style.display = "block";
+        };
     }
 
     setLevelLoadFunc(levelLoadFunc)
     {
-        this.lvl1Button.onclick = () => { levelLoadFunc(1); }; 
-        this.lvl2Button.onclick = () => { levelLoadFunc(2); }; 
+        this.lvl1Button.onclick = () => { 
+            this.audioManger.playClickSound(() => { 
+                levelLoadFunc(1); 
+            })
+        }; 
+
+        this.lvl2Button.onclick = () => { 
+            this.audioManger.playClickSound(() => { 
+                levelLoadFunc(2); 
+            })
+        }; 
     }
     
     displayStartScreen()

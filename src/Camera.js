@@ -9,6 +9,8 @@ export class Camera
     light;
     innerLight;
 
+    audioManager;
+
     moving;
 
     clock;
@@ -26,17 +28,22 @@ export class Camera
     innerLightOnAnimAction;
     innerLightOffAnimAction;
 
+    rotationAnimTimes;
     yawAnimMixer;
     pitchAnimMixer;
     yawAnimAction;
     pitchAnimAction;
 
+    isActiveCam;
+    isPanning;
+
     currentCallback;
     animating;
 
-    constructor(camera, pitchController, yawController, rotationValues, rotationSpeed, lightAngle, pauseLength)
+    constructor(camera, pitchController, yawController, rotationValues, rotationSpeed, lightAngle, pauseLength, audioManager)
     {
         this.camera = camera;
+        this.audioManager = audioManager;
 
         this.pitchController = pitchController;
         this.yawController = yawController;
@@ -61,21 +68,18 @@ export class Camera
         
         const startYaw = new THREE.Quaternion();
         startYaw.setFromEuler(new THREE.Euler(0, yawAnimAngles[0], 0, 'XYZ'));
-
-        // pitchController.rotation.set(0, 0, pitchAnimAngles[0]);
-        // yawController.rotation.set(0, yawAnimAngles[0], 0);
         
-        const rotationAnimTimes = [0];
+        this.rotationAnimTimes = [0];
 
         var stopFrame = true;
         for (var i = 1; i < pitchAnimAngles.length; i++)
         {
             if (stopFrame)
-                rotationAnimTimes.push(rotationAnimTimes[i - 1] + pauseLength);
+                this.rotationAnimTimes.push(this.rotationAnimTimes[i - 1] + pauseLength);
             else
             {
-                rotationAnimTimes.push(
-                    rotationAnimTimes[i - 1] +
+                this.rotationAnimTimes.push(
+                    this.rotationAnimTimes[i - 1] +
                     Math.max(
                         Math.abs(pitchAnimAngles[i] - pitchAnimAngles[i - 1]),
                         Math.abs(yawAnimAngles[i] - yawAnimAngles[i - 1])
@@ -139,8 +143,8 @@ export class Camera
 
         this.moving = true;
 
-        const pitchKeyFrames = new THREE.QuaternionKeyframeTrack(".quaternion", rotationAnimTimes, pitchAnimValues, THREE.InterpolateLinear);
-        const yawKeyFrames = new THREE.QuaternionKeyframeTrack(".quaternion", rotationAnimTimes, yawAnimValues, THREE.InterpolateLinear);
+        const pitchKeyFrames = new THREE.QuaternionKeyframeTrack(".quaternion", this.rotationAnimTimes, pitchAnimValues, THREE.InterpolateLinear);
+        const yawKeyFrames = new THREE.QuaternionKeyframeTrack(".quaternion", this.rotationAnimTimes, yawAnimValues, THREE.InterpolateLinear);
         
         const pitchClip = new THREE.AnimationClip("rotatePitch", -1, [pitchKeyFrames]);
         const yawClip = new THREE.AnimationClip("rotateYaw", -1, [yawKeyFrames]);
@@ -182,7 +186,7 @@ export class Camera
         this.innerLightOffAnimAction.setLoop(THREE.LoopOnce, 1);
     }
 
-    update()
+    update(isActiveCam)
     {
         const delta = this.clock.getDelta();
 
@@ -191,6 +195,34 @@ export class Camera
         
         this.pitchAnimMixer.update(delta);
         this.yawAnimMixer.update(delta);
+
+        if (isActiveCam != this.isActiveCam)
+        {
+            this.isActiveCam = isActiveCam
+            
+            if (this.isActiveCam)
+                this.isPanning = false;
+        }
+
+        if (this.isActiveCam && this.moving)
+        {
+            var animIndex = 0;
+            const animDuration = this.rotationAnimTimes[this.rotationAnimTimes.length - 1]
+
+            while (this.rotationAnimTimes[animIndex + 1] < this.pitchAnimAction.time % animDuration) animIndex++;
+
+            if (animIndex % 2 == 0 && this.isPanning)
+            {
+                this.isPanning = false;
+                this.audioManager.setCameraMotorSound(false);
+                this.audioManager.playCameraStopSound(() => {});
+            }
+            else if (animIndex % 2 == 1 && !this.isPanning)
+            {
+                this.isPanning = true;
+                this.audioManager.setCameraMotorSound(true);
+            }
+        }
     }
     
     lightOn(callback)
@@ -248,6 +280,13 @@ export class Camera
         {
             this.pitchAnimAction.paused = true;
             this.yawAnimAction.paused = true;
+
+            if (this.isActiveCam && this.isPanning)
+            {
+                this.isPanning = false;
+                this.audioManager.setCameraMotorSound(false);
+                this.audioManager.playCameraStopSound(() => {});
+            }
         }
 
         this.moving = isMoving;
@@ -259,6 +298,8 @@ export class Camera
         this.pitchAnimMixer.time = 0;
         this.yawAnimAction.time = 0;
         this.pitchAnimAction.time = 0;
+
+        this.isPanning = false;
     }
 
     setVisible(val)

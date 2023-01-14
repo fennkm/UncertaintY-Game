@@ -10,12 +10,14 @@ import { Level } from './Level.js';
 export class LevelLoader
 {
     scene;
+    audioManager;
     loader;
     levels;
 
-    constructor(scene)
+    constructor(scene, audioManager)
     {
         this.scene = scene;
+        this.audioManager = audioManager;
         this.loader = new GLTFLoader();
         this.levels = [];
     }
@@ -24,7 +26,7 @@ export class LevelLoader
     {
         while (this.levels.length < levelNum - 1) this.levels.push(null);
 
-        const loadSizes = [147151252, 118350460];
+        const loadSizes = [147151252, 118362444];
 
         if (levelNum > loadSizes.length)
             console.error("No load size defined for level " + levelNum);
@@ -38,8 +40,8 @@ export class LevelLoader
                 callback();
 			},
 			(xhr) => {
-				// console.log(Math.trunc((xhr.loaded * 100) / loadSizes[levelNum - 1]) + "% loaded");
-				console.log(xhr.loaded);
+				console.log(Math.trunc((xhr.loaded * 100) / loadSizes[levelNum - 1]) + "% loaded");
+				// console.log(xhr.loaded);
 			},
 			(error) => {
 				console.log(error);
@@ -90,7 +92,8 @@ export class LevelLoader
                     [[10, -5], [10, -90], [35, -90], [35, -5]],
                     Math.PI / 24,
                     Math.PI / 12,
-                    0.3
+                    0.7,
+                    this.audioManager
                 )
             );
         
@@ -102,7 +105,8 @@ export class LevelLoader
                     [[10, -120], [10, -180], [45, -180], [45, -120]],
                     Math.PI / 24,
                     Math.PI / 12,
-                    0.3
+                    0.7,
+                    this.audioManager
                 )
             );
         }
@@ -116,7 +120,8 @@ export class LevelLoader
                     [[10, -120], [10, -180], [35, -180], [35, -120]],
                     Math.PI / 24,
                     Math.PI / 12,
-                    0.3
+                    0.7,
+                    this.audioManager
                 )
             );
         
@@ -128,7 +133,8 @@ export class LevelLoader
                     [[10, 0], [10, -140], [45, -140], [45, 0]],
                     Math.PI / 24,
                     Math.PI / 12,
-                    0.3
+                    0.7,
+                    this.audioManager
                 )
             );
         
@@ -140,7 +146,8 @@ export class LevelLoader
                     [[10, 0], [10, -140], [45, -140], [45, 0]],
                     Math.PI / 24,
                     Math.PI / 10,
-                    0.3
+                    0.7,
+                    this.audioManager
                 )
             );
         }

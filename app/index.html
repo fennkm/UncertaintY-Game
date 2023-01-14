@@ -99,6 +99,19 @@
 				top: 600px;
 			}
 
+			#menuUI #soundOff
+			{
+				bottom: 50px;
+				left: 50px;
+			}
+
+			#menuUI #soundOn
+			{
+				bottom: 50px;
+				left: 50px;
+				display: none;
+			}
+
 			#introUI1
 			{
 				display: none;
@@ -206,15 +219,17 @@
 			<div id="title">
 				UncertaintY
 			</div>
-			<button id="option1">
+			<button id="option1" class="button">
 				How to Play
 			</button>
-			<button id="option2">
+			<button id="option2" class="button">
 				Level 1
 			</button>
-			<button id="option3">
+			<button id="option3" class="button">
 				Level 2
 			</button>
+			<img id="soundOn" class="button" src="../assets/gui/sprites/SpeakerOn.png">
+			<img id="soundOff" class="button" src="../assets/gui/sprites/SpeakerOff.png">
 		</div>
 		<div id="introUI1" class="ui">
 			<div class="pageCard">
@@ -229,7 +244,7 @@
 				<br>
 				I'm not an expert on this - I'm with the robotics team for heaven's sake - but it seems these entities are able to arrange their atoms at will to assume the form of any object they want! Naturally, this makes them rather hard to track down. However, I have also been informed that even in this disguised state, the entities still exhibit certain quantum behaviours; the buggers will enter a state of superposition when not directly observed. All you need to know is they will seem to.. errr… "jump around" a bit when you take your eyes off them.
 			</div>
-			<button id="page1Next" class="nextButton">
+			<button id="page1Next" class="button nextButton">
 				Next Page
 			</button>
 		</div>
@@ -243,7 +258,7 @@
 				<br>
 				We're going to start you off in the Chief Researcher's office, and then have you take a look at one of our robotics labs. We're getting readings all over the place, but they seem particularly strong in these two locations. Now, remember: you're looking for regular objects that seem to move around when you're not looking. Take a good long look and light em up if you see one. Remember, we're draining power by the second, so you're on the clock. Good luck, Chief.
 			</div>
-			<button id="page2Next" class="nextButton">
+			<button id="page2Next" class="button nextButton">
 				Next Page
 			</button>
 		</div>
@@ -263,7 +278,7 @@
 				<br>
 				You'll be shown how many enemies you've destroyed and how many there are in the room in total. Destroy them all before the timer runs out to win!
 			</div>
-			<button id="page3Next" class="nextButton">
+			<button id="page3Next" class="button nextButton">
 				Back
 			</button>
 		</div>
