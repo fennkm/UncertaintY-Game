@@ -63,7 +63,9 @@ export class RenderManager
 
     playStatic()
     {
+        this.fxComposer.removePass(this.screenEffect);
         this.fxComposer.addPass(this.staticScreen);
+		this.fxComposer.addPass(this.screenEffect);
 
         setTimeout(() => { 
             this.fxComposer.removePass(this.staticScreen);
