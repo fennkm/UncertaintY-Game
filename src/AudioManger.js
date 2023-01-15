@@ -15,6 +15,11 @@ export class AudioManager
     hoverSound;
     cameraStopSound;
     cameraMotorSound;
+    staticSound;
+    laserFireSound;
+    monsterScreamSound;
+
+    disturbanceSounds;
 
     constructor(scene)
     {
@@ -31,6 +36,14 @@ export class AudioManager
         this.hoverSound = new THREE.Audio(this.listener);
         this.cameraStopSound = new THREE.Audio(this.listener);
         this.cameraMotorSound = new THREE.Audio(this.listener);
+        this.staticSound = new THREE.Audio(this.listener);
+        this.laserFireSound = new THREE.Audio(this.listener);
+        this.monsterScreamSound = new THREE.Audio(this.listener);
+        this.steamHissSound = new THREE.Audio(this.listener);
+
+        this.disturbanceSounds = [];
+        for (var i = 0; i < 6; i++)
+            this.disturbanceSounds.push(new THREE.Audio(this.listener));
 
         const audioLoader = new THREE.AudioLoader();
 
@@ -60,48 +73,73 @@ export class AudioManager
             this.cameraMotorSound.setLoop(true);
             this.cameraMotorSound.isPlaying = false;
         });
+
+        audioLoader.load("../assets/audio/camera_off.wav", (buffer) => {
+            this.staticSound.setBuffer(buffer);
+            this.staticSound.setLoop(true);
+            this.staticSound.isPlaying = false;
+        });
+
+        audioLoader.load("../assets/audio/laser_fire.wav", (buffer) => {
+            this.laserFireSound.setBuffer(buffer);
+            this.laserFireSound.isPlaying = false;
+        });
+
+        audioLoader.load("../assets/audio/monster_scream.wav", (buffer) => {
+            this.monsterScreamSound.setBuffer(buffer);
+            this.monsterScreamSound.isPlaying = false;
+        });
+
+        for (var i = 0; i < this.disturbanceSounds.length; i++)
+        {
+            const k = i;
+            audioLoader.load("../assets/audio/disturbance" + (k + 1) + ".wav", (buffer) => {
+                this.disturbanceSounds[k].setBuffer(buffer);
+                this.disturbanceSounds[k].isPlaying = false;
+            });
+        }
     }
 
     playHoverSound(callback)
     {
-        if (this.hoverSound != null)
-        {
-            this.hoverSound.onEnded = () => {
-                this.hoverSound.isPlaying = false;
-                callback();
-            };
-
-            this.hoverSound.play();
-        }
-        else
-            callback();
+        this.playSoundSingle(this.hoverSound, callback);
     }
 
     playClickSound(callback)
     {
-        if (this.clickSound != null)
-        {
-            this.clickSound.onEnded = () => {
-                this.clickSound.isPlaying = false;
-                callback();
-            };
-            
-            this.clickSound.play();
-        }
-        else
-            callback();
+        this.playSoundSingle(this.clickSound, callback);
     }
 
     playCameraStopSound(callback)
     {
-        if (this.cameraStopSound != null)
+        this.playSoundSingle(this.cameraStopSound, callback);
+    }
+
+    playLaserFireSound(callback)
+    {
+        this.playSoundSingle(this.laserFireSound, callback);
+    }
+
+    playMonsterScreamSound(callback)
+    {
+        this.playSoundSingle(this.monsterScreamSound, callback);
+    }
+
+    playRandomDisturbance(callback)
+    {
+        this.playSoundSingle(this.disturbanceSounds[Math.floor(Math.random() * this.disturbanceSounds.length)], callback);
+    }
+
+    playSoundSingle(sound, callback)
+    {
+        if (sound != null)
         {
-            this.cameraStopSound.onEnded = () => {
-                this.cameraStopSound.isPlaying = false;
+            sound.onEnded = () => {
+                sound.isPlaying = false;
                 callback();
             };
             
-            this.cameraStopSound.play();
+            sound.play();
         }
         else
             callback();
@@ -109,12 +147,22 @@ export class AudioManager
 
     setCameraMotorSound(enabled)
     {
-        if (this.cameraMotorSound != null)
+        this.setContinuousSound(this.cameraMotorSound, enabled)
+    }
+
+    setStaticSound(enabled)
+    {
+        this.setContinuousSound(this.staticSound, enabled)
+    }
+
+    setContinuousSound(sound, enabled)
+    {
+        if (sound != null)
         {
             if (enabled)
-                this.cameraMotorSound.play();
+                sound.play();
             else
-                this.cameraMotorSound.stop();
+                sound.stop();
         }
     }
 
@@ -132,6 +180,10 @@ export class AudioManager
             this.hoverSound.setVolume(1);
             this.cameraStopSound.setVolume(0.4);
             this.cameraMotorSound.setVolume(0.3);
+            this.laserFireSound.setVolume(0.6); 
+            this.monsterScreamSound.setVolume(0.2);
+
+            this.disturbanceSounds.map((e) => { e.setVolume(0.6); });
         }
         else
         {
@@ -140,6 +192,12 @@ export class AudioManager
             this.hoverSound.setVolume(0);
             this.cameraStopSound.setVolume(0);
             this.cameraMotorSound.setVolume(0);
+            this.laserFireSound.setVolume(0);
+            this.monsterScreamSound.setVolume(0);
+
+            this.disturbanceSounds.map((e) => { e.setVolume(0); });
         }
     }
+
+    getSoundOn() { return this.soundOn; }
 }

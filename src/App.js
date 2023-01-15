@@ -11,13 +11,15 @@ import { AudioManager } from './AudioManger.js';
 
 let scene, lvl, levelLoader, ambLight;
 let renderManager, uiManager, audioManager;
-let viewingCamera, currentCamera, menuCam, debugCam;
+let viewingCamera, currentCamera, menuCam, debugCam, switchingCameras;
 let controls, clock;
 let pointer, raycaster, laser, selection;
 let aiming, lives, score, timeLeft, timerRunning;
 
 var debug = false;
 var helpers;
+var hasControl;
+var disturbanceTimer;
 
 class App 
 {
@@ -47,6 +49,9 @@ class App
 		renderManager = new RenderManager(scene, canvas, viewingCamera);
 
 		renderManager.setScreenFX(!debug);
+
+		switchingCameras = false;
+		hasControl = true;
 
 		ambLight = new THREE.AmbientLight( 0x404040, (debug ? 1 : 0));
 		scene.add(ambLight);
@@ -164,11 +169,13 @@ function displayLevel(levelNum)
 			timeLeft = 900;
 
 		timerRunning = true;
+		
+		disturbanceTimer = Math.random() * 60 + 120;
 
 		currentCamera = 0;
 		aiming = false;
 
-		lvl.cameras.map((e) => { e.setMoving(true); });
+		lvl.cameras.map((e) => { e.setMoving(true, true); });
 		lvl.cameras[currentCamera].setVisible(true);
 
 		if (!debug)
@@ -196,9 +203,13 @@ function updateLevel(delta)
 	{
 		timeLeft -= delta;
 
+		if (audioManager.getSoundOn())
+			disturbanceTimer -= delta;
+		console.log(disturbanceTimer)
+
 		if (timeLeft <= 0)
 		{
-			lvl.cameras.map((e) => { e.setMoving(false); });
+			lvl.cameras.map((e) => { e.setMoving(false, false); });
 
 			setTimeout(() => {
 				lvl.cameras[currentCamera].lightOff(() => { 
@@ -214,6 +225,28 @@ function updateLevel(delta)
 		}
 
 		uiManager.setTimer(timeLeft);
+
+		if (disturbanceTimer <= 0)
+		{
+			if (!laser.isActive() && !lvl.cameras[currentCamera].isAnimating() && !switchingCameras)
+			{
+				hasControl = false;
+				lvl.cameras[currentCamera].setMoving(false, false);
+				lvl.cameras[currentCamera].lightOff(() => {
+					setTimeout(() => {
+						audioManager.playRandomDisturbance(() => {
+							setTimeout(() => {
+								lvl.cameras[currentCamera].lightOn(() => {
+									lvl.cameras[currentCamera].setMoving(true);
+									hasControl = true;
+								});
+							}, 1000);
+						});
+					}, 1000);
+				});
+			}
+			disturbanceTimer = Math.random() * 60 + 120;
+		}
 	}
 
 	laser.update();
@@ -254,7 +287,7 @@ function onPointerMove(event)
 
 function onPointerDown(event) 
 {
-    if (lvl != null && selection != null && !laser.isActive() && !lvl.cameras[currentCamera].isAnimating() && aiming)
+    if (lvl != null && selection != null && hasControl && !laser.isActive() && !lvl.cameras[currentCamera].isAnimating() && aiming)
     {
         var target = selection.object;
 		
@@ -283,6 +316,11 @@ function onPointerDown(event)
         
 		lvl.quantumGroups.map(e => e.setMoving(false));
         lvl.cameras[currentCamera].lightOff(() => { 
+			audioManager.playLaserFireSound(() => {});
+			if (obj.getQuantumGroup() != -1) 
+				setTimeout(() => { 
+					audioManager.playMonsterScreamSound(() => {});
+				}, 2600);
             laser.fire(source, hitPoint, () => {
 				if (obj.getQuantumGroup() != -1)
 				{
@@ -298,7 +336,7 @@ function onPointerDown(event)
 					else
 						lvl.cameras[currentCamera].lightOn(() => {
 							aiming = false;
-							lvl.cameras[currentCamera].setMoving(true); 
+							lvl.cameras[currentCamera].setMoving(true, true); 
 							lvl.quantumGroups.map(e => e.setMoving(true));
 						});
 				}
@@ -309,14 +347,14 @@ function onPointerDown(event)
 
 					if (lives == 0)
 					{
-						lvl.cameras.map((e) => { e.setMoving(false); });
+						lvl.cameras.map((e) => { e.setMoving(false, true); });
 						setTimeout(() => { displayLevel(0); }, 3000);
 						timerRunning = false;
 					}
 					else
 						lvl.cameras[currentCamera].lightOn(() => {
 							aiming = false;
-							lvl.cameras[currentCamera].setMoving(true); 
+							lvl.cameras[currentCamera].setMoving(true, true); 
 							lvl.quantumGroups.map(e => e.setMoving(true));
 						});
 				}
@@ -329,22 +367,22 @@ function onKeyDown(event)
 {
     var keyCode = event.which;
     
-	if (keyCode == 32 && lvl != null && !laser.isActive() && !lvl.cameras[currentCamera].isAnimating()) // Space
+	if (keyCode == 32 && lvl != null && hasControl && !laser.isActive() && !lvl.cameras[currentCamera].isAnimating()) // Space
 	{
 		if (aiming)
 		{
 			aiming = false;
-			lvl.cameras[currentCamera].setMoving(true);
+			lvl.cameras[currentCamera].setMoving(true, true);
 		}
 		else
 		{
 			aiming = true;
-			lvl.cameras[currentCamera].setMoving(false);
+			lvl.cameras[currentCamera].setMoving(false, true);
 		}
 	}
-	else if (keyCode == 16 && lvl != null && !laser.isActive() && !lvl.cameras[currentCamera].isAnimating()) // shift key
+	else if (keyCode == 16 && lvl != null && hasControl && !laser.isActive() && !lvl.cameras[currentCamera].isAnimating() && !switchingCameras) // shift key
     {
-		lvl.cameras[currentCamera].setMoving(true);
+		lvl.cameras[currentCamera].setMoving(true, true);
 		lvl.cameras[currentCamera].setVisible(false);
         currentCamera = (currentCamera + 1) % lvl.cameras.length;
 		lvl.cameras[currentCamera].setVisible(true);
@@ -355,7 +393,14 @@ function onKeyDown(event)
 		{
 			viewingCamera = lvl.cameras[currentCamera].getCamera();
 			renderManager.setCamera(viewingCamera);
-			renderManager.playStatic();
+
+			audioManager.setCameraMotorSound(false);
+			switchingCameras = true;
+			lvl.cameras[currentCamera].setMoving(false, true);
+			renderManager.playStatic(audioManager, () => { 
+				switchingCameras = false;
+				lvl.cameras[currentCamera].setMoving(true, true);
+			});
 		}
     }
     else if (keyCode == 113) // F2 key

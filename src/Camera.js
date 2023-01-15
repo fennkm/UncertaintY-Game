@@ -269,7 +269,7 @@ export class Camera
         this.setVisible(val);
     }
 
-    setMoving(isMoving)
+    setMoving(isMoving, playEffect)
     {
         if (isMoving && !this.moving)
         {
@@ -285,7 +285,8 @@ export class Camera
             {
                 this.isPanning = false;
                 this.audioManager.setCameraMotorSound(false);
-                this.audioManager.playCameraStopSound(() => {});
+                if (playEffect)
+                    this.audioManager.playCameraStopSound(() => {});
             }
         }
 

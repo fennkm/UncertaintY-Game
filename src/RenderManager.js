@@ -61,15 +61,19 @@ export class RenderManager
         this.screenFXActive = true;
     }
 
-    playStatic()
+    playStatic(audioManager, callback)
     {
         this.fxComposer.removePass(this.screenEffect);
         this.fxComposer.addPass(this.staticScreen);
 		this.fxComposer.addPass(this.screenEffect);
 
+        audioManager.setStaticSound(true);
+
         setTimeout(() => { 
+            audioManager.setStaticSound(false);
             this.fxComposer.removePass(this.staticScreen);
-        }, 1000);
+            callback();
+        }, 1400);
     }
 
     setCamera(camera)
