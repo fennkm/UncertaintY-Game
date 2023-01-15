@@ -178,10 +178,10 @@ export class Camera
         const innerLightOnKeyFrames = new THREE.NumberKeyframeTrack(".intensity", this.onAnimTimes, this.innerLightOnAnimValues, THREE.InterpolateDiscrete);
         const innerLightOffKeyFrames = new THREE.NumberKeyframeTrack(".intensity", this.offAnimTimes, this.innerLightOffAnimValues, THREE.InterpolateDiscrete);
 
-        const lightOnClip = new THREE.AnimationClip("fireLaser", -1, [lightOnKeyFrames]);
-        const lightOffClip = new THREE.AnimationClip("fireLaser", -1, [lightOffKeyFrames]);
-        const innerLightOnClip = new THREE.AnimationClip("fireLaser", -1, [innerLightOnKeyFrames]);
-        const innerLightOffClip = new THREE.AnimationClip("fireLaser", -1, [innerLightOffKeyFrames]);
+        const lightOnClip = new THREE.AnimationClip("lightOn", -1, [lightOnKeyFrames]);
+        const lightOffClip = new THREE.AnimationClip("lightOff", -1, [lightOffKeyFrames]);
+        const innerLightOnClip = new THREE.AnimationClip("innerLightOn", -1, [innerLightOnKeyFrames]);
+        const innerLightOffClip = new THREE.AnimationClip("innerLightOff", -1, [innerLightOffKeyFrames]);
         
         this.lightAnimMixer = new THREE.AnimationMixer(this.light);
         this.innerLightAnimMixer = new THREE.AnimationMixer(this.innerLight);
@@ -200,12 +200,11 @@ export class Camera
     /**
      * Updates the camera animation and sound
      * 
+     * @param delta time since last frame in seconds
      * @param isActiveCam is this camera rendering to the screen
      */
-    update(isActiveCam)
+    update(delta, isActiveCam)
     {
-        const delta = this.clock.getDelta();
-
         this.lightAnimMixer.update(delta);
         this.innerLightAnimMixer.update(delta);
         

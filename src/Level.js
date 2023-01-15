@@ -8,18 +8,20 @@
  * @param interactables list of interactable object wrappers in the scene
  * @param interactableMap map that links each object in the scene to its wrapper
  * @param quantumGroup list of quantum group object in the scene
+ * @param lights list of overhead light sources in the scene
  * @param helpers list of helpers in the scene
  */
 export class Level
 {
     
-    constructor(scene, cameras, interactables, interactableMap, quantumGroups, helpers)
+    constructor(scene, cameras, interactables, interactableMap, quantumGroups, lights, helpers)
     {
         this.scene = scene;
         this.cameras = cameras;
         this.interactables = interactables;
         this.interactableMap = interactableMap;
         this.quantumGroups = quantumGroups;
+        this.lights = lights
         this.helpers = helpers;
     }
 }

@@ -77,7 +77,7 @@ export class Laser
         const lightFlickerKeyFrames = new THREE.NumberKeyframeTrack(".distance", this.lightFlickerAnimTimes, this.lightFlickerAnimValues, THREE.InterpolateLinear);
     
         const laserClip = new THREE.AnimationClip("fireLaser", -1, [laserKeyFrames]);
-        const lightClip = new THREE.AnimationClip("fireLaser", -1, [lightKeyFrames]);
+        const lightClip = new THREE.AnimationClip("laserLight", -1, [lightKeyFrames]);
         const flickerClip = new THREE.AnimationClip("laserFlicker", -1, [lightFlickerKeyFrames]);
         
         this.laserAnimMixer = new THREE.AnimationMixer(this.laser);

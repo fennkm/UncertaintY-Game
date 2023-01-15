@@ -8,8 +8,9 @@ import { LevelLoader } from './LevelLoader.js';
 import { RenderManager } from './RenderManager.js';
 import { UIManager } from './UIManager.js';
 import { AudioManager } from './AudioManager.js';
+import { LightController } from './LightController.js';
 
-let scene, lvl, levelLoader, ambLight;
+let scene, lvl, levelLoader, ambLight, debugLight;
 let renderManager, uiManager, audioManager;
 let viewingCamera, currentCamera, menuCam, debugCam, switchingCameras;
 let controls, clock;
@@ -57,8 +58,10 @@ class App
 		switchingCameras = false;
 		hasControl = true;
 
-		ambLight = new THREE.AmbientLight( 0x404040, 0);
-		scene.add(ambLight);
+		ambLight = new LightController(scene);
+
+		debugLight = new THREE.AmbientLight(0x404040, 0);
+		scene.add(debugLight);
 
 		laser = new Laser(scene);
 		
@@ -139,6 +142,8 @@ function render()
 
 	if (lvl != null)
 		updateLevel(delta);
+
+	ambLight.update(delta);
     
     renderManager.render();
 	
@@ -236,6 +241,7 @@ function updateLevel(delta)
 
 		if (timeLeft <= 0)
 		{
+			hasControl = false;
 			lvl.cameras.map((e) => { e.setMoving(false, false); });
 
 			setTimeout(() => {
@@ -281,7 +287,7 @@ function updateLevel(delta)
 	}
 
 	laser.update(delta);
-	lvl.cameras.map(e => e.update(e == lvl.cameras[currentCamera]));
+	lvl.cameras.map(e => e.update(delta, e == lvl.cameras[currentCamera]));
 	lvl.interactables.map(e => e.update(lvl.cameras[currentCamera]));
 	lvl.quantumGroups.map(e => e.update());
 
@@ -371,12 +377,16 @@ function onPointerDown()
 				{
 					lvl.quantumGroups[obj.getQuantumGroup()].setActive(false);
 					uiManager.setScore(++score);
-					if (score == lvl.quantumGroups.length)
+					if (score >= lvl.quantumGroups.length)
 					{
-						lvl.cameras[currentCamera].lightOn(() => {
-							setTimeout(() => { displayLevel(0); }, 3000);
-							timerRunning = false;
-						});
+						hasControl = false;
+						timerRunning = false;
+
+						setTimeout(() => {
+							ambLight.lightOn(() => {
+								displayLevel(0); 
+							});
+						}, 1000);
 					}
 					else
 						lvl.cameras[currentCamera].lightOn(() => {
@@ -392,11 +402,12 @@ function onPointerDown()
 
 					if (lives == 0)
 					{
+						hasControl = false;
 						lvl.cameras.map((e) => { e.setMoving(false, false); });
 						setTimeout(() => { 
 							audioManager.playMonsterGrowlSound(() => {
 								setTimeout(() => {
-									displayLevel(0); 
+									displayLevel(0);
 								}, 1000);
 							});
 						}, 2000);
@@ -461,6 +472,8 @@ function onKeyDown(event)
     }
     else if (keyCode == 113) // F2 key
     {
+		lvl.helpers.map((e) => { if (e.type == "PointLightHelper") console.log(e); });
+
         if (debug)
         {
 			if (lvl == null)
@@ -470,7 +483,7 @@ function onKeyDown(event)
             debug = false;
             helpers.map((e) => { e.visible = false; });
 			lvl.helpers.map((e) => { e.visible = false });
-            ambLight.intensity = 0;
+            debugLight.intensity = 0;
 
 			renderManager.setCamera(viewingCamera);
 			renderManager.setScreenFX(true);
@@ -482,7 +495,7 @@ function onKeyDown(event)
             debug = true;
             helpers.map((e) => { e.visible = true; });
 			lvl.helpers.map((e) => { e.visible = true });
-            ambLight.intensity = 0.5;
+            debugLight.intensity = 0.5;
 
 			renderManager.setCamera(viewingCamera);
 			renderManager.setScreenFX(false);
@@ -493,6 +506,10 @@ function onKeyDown(event)
 			debugCam.rotation.set(0, 0, 0);
         }
     }
+	else if (keyCode == 115)
+	{
+		score = 99;
+	}
 }
 
 /**
