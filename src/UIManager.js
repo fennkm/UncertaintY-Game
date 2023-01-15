@@ -5,6 +5,9 @@ export class UIManager
     uiScreen;
     visible;
 
+    loadingUI;
+    loadingBar;
+
     menuUI;
     introButton;
     lvl1Button;
@@ -37,6 +40,9 @@ export class UIManager
     {
         this.audioManger = audioManger;
 
+        this.loadingUI = document.getElementById("loadingUI");
+        this.loadingBar = document.getElementById("loadingBar");
+
         this.menuUI = document.getElementById("menuUI");
         this.introButton = document.getElementById("option1");
         this.lvl1Button = document.getElementById("option2");
@@ -62,9 +68,6 @@ export class UIManager
 
         this.score = 0;
         this.scoreGoal = 0;
-
-        this.uiScreen = menuUI;
-        this.uiScreen.style.display = "block";
 
         this.visible = true;
 
@@ -129,12 +132,38 @@ export class UIManager
     }
     
     /**
+     * Displays the loading overlay and removes any existing one
+     */
+    displayLoadingScreen()
+    {
+        if (this.uiScreen != null)
+            this.uiScreen.style.display = "none";
+            
+        this.uiScreen = this.loadingUI;
+        if (this.visible)
+            this.uiScreen.style.display = "block";
+    }
+    
+    /**
+     * Sets the progress of the loading bar on the loading screen
+     * 
+     * @param progress loading progress from 0 to 1
+     */
+    setLoadingProgress(progress)
+    {
+        console.log((progress * 1200) + "px");
+        this.loadingBar.style.width = (progress * 1200) + "px";
+    }
+    
+    /**
      * Displays the main menu overlay and removes any existing one
      */
     displayStartScreen()
     {
-        this.uiScreen.style.display = "none";
-        this.uiScreen = menuUI;
+        if (this.uiScreen != null)
+            this.uiScreen.style.display = "none";
+            
+        this.uiScreen = this.menuUI;
         if (this.visible)
             this.uiScreen.style.display = "block";
     }
@@ -146,7 +175,9 @@ export class UIManager
      */
     displayIntro(page)
     {
-        this.uiScreen.style.display = "none";
+        if (this.uiScreen != null)
+            this.uiScreen.style.display = "none";
+            
 
         const display = [this.introPage1, this.introPage2, this.introPage3][page];
 
@@ -160,7 +191,9 @@ export class UIManager
      */
     displayCameraScreen()
     {
-        this.uiScreen.style.display = "none";
+        if (this.uiScreen != null)
+            this.uiScreen.style.display = "none";
+            
         this.uiScreen = this.cameraUI;
         if (this.visible)
             this.uiScreen.style.display = "block";

@@ -32,9 +32,11 @@ export class LevelLoader
      * Loads a level from a file in /assets/models/ called room[num].glb
      * 
      * @param levelNum room number to load e.g. room1.glb, room2.glb
+     * @param progressAdd how much loading has already progressed (0-1)
+     * @param progressMul how much of the total loading this level represents (0-1)
      * @param callback called when room is finished loading
      */
-    loadLevel(levelNum, callback)
+    loadLevel(levelNum, progressAdd, progressMul, uiManager, callback)
     {
         while (this.levels.length < levelNum - 1) this.levels.push(null);
 
@@ -52,8 +54,8 @@ export class LevelLoader
                 callback();
 			},
 			(xhr) => {
+                uiManager.setLoadingProgress(progressAdd + (xhr.loaded / loadSizes[levelNum - 1]) * progressMul);
 				console.log(Math.trunc((xhr.loaded * 100) / loadSizes[levelNum - 1]) + "% loaded");
-				// console.log(xhr.loaded);
 			},
 			(error) => {
 				console.log(error);

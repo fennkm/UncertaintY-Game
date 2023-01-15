@@ -38,11 +38,40 @@ body
     width: 100%;
     height: 100%;
     z-index: 1;
+    display: none;
 }
 
-#menuUI
+#loadingUI
 {
-    display: none;
+    display: block;
+}
+
+#loadingUI #loadingText
+{
+    top: 400px;
+    width: 100%;
+    font-size: 50px;
+    text-align: center;
+}
+
+#loadingUI #loadingBox
+{
+    top: 490px;
+    width: 1210px;
+    height: 60px;
+    margin-left: calc(50% - 610px);
+    margin-right: calc(50% - 605px);
+    border-style: solid;
+    border-width: 5px;
+    border-color: #e3e35e;
+}
+
+#loadingUI #loadingBar
+{
+    top: 5px;
+    height: 50px;
+    margin-left: 5px;
+    background-color: #e3e35e;
 }
 
 #menuUI #title
@@ -58,7 +87,7 @@ button
     font-family: Minecraft;
     color: #e3e35e;
     background: transparent;
-    border-width: 3px;
+    border-width: 5px;
     border-color: transparent;
     border-style: solid;
     padding: 10px 10px 0px 10px;
@@ -106,21 +135,6 @@ button:hover
     display: none;
 }
 
-#introUI1
-{
-    display: none;
-}
-
-#introUI2
-{
-    display: none;
-}
-
-#introUI3
-{
-    display: none;
-}
-
 .pageCard
 {
     top : 40px;
@@ -144,11 +158,6 @@ button:hover
     font-size: 50px;
     text-align: center;
     bottom: 60px;
-}
-
-#cameraUI
-{
-    display: none;
 }
 
 #cameraUI #camCount
@@ -198,7 +207,7 @@ button:hover
     bottom: 45px;
     right: 50px;
     padding: 14px 14px 0px 14px;
-    border-width: 3px;
+    border-width: 5px;
     border-style: solid;
     text-align: right;
 }

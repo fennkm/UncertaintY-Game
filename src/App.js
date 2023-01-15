@@ -10,7 +10,7 @@ import { UIManager } from './UIManager.js';
 import { AudioManager } from './AudioManager.js';
 import { LightController } from './LightController.js';
 
-let scene, lvl, levelLoader, ambLight, debugLight;
+let scene, lvl, levelLoader, ambLight, debugLight, gameLoaded;
 let renderManager, uiManager, audioManager;
 let viewingCamera, currentCamera, menuCam, debugCam, switchingCameras;
 let controls, clock;
@@ -30,6 +30,8 @@ class App
 	init() 
 	{
 		debug = false;
+		gameLoaded = false;
+
 		const canvas = document.getElementById("gl-canvas");
 
 		scene = new THREE.Scene();
@@ -84,9 +86,19 @@ class App
 		if (!debug)
 			helpers.map((e) => { e.visible = false; });
 
+		window.addEventListener("resize", onWindowResize);
+		onWindowResize();
+
+		uiManager = new UIManager(audioManager);
+		
+		uiManager.setLevelLoadFunc(displayLevel);
+		uiManager.displayLoadingScreen();
+
+		requestAnimationFrame(render);
+
 		levelLoader = new LevelLoader(scene, audioManager);
-		levelLoader.loadLevel(1, () => { 
-			levelLoader.loadLevel(2, () => { 
+		levelLoader.loadLevel(1, 0, 0.5, uiManager, () => { 
+			levelLoader.loadLevel(2, 0.5, 0.5, uiManager, () => { 
 				onGameLoad(); 
 			}); 
 		});
@@ -98,15 +110,8 @@ class App
  */
 function onGameLoad()
 {
-	window.addEventListener("resize", onWindowResize);
-	onWindowResize();
-
-	uiManager = new UIManager(audioManager);
-	uiManager.setLevelLoadFunc(displayLevel);
-
+	gameLoaded = true;
 	displayLevel(0);
-
-	requestAnimationFrame(render);
 }
 
 /**
@@ -122,12 +127,13 @@ function onWindowResize()
 	menuCam.aspect = aspect;
     menuCam.updateProjectionMatrix();
 
-	levelLoader.getLevels().map((e) => {
-		if (e != null) {
-			e.cameras.map((x) => { x.getCamera().aspect = aspect; });
-			e.cameras.map((x) => { x.getCamera().updateProjectionMatrix(); });
-		}
-	});
+	if (gameLoaded)
+		levelLoader.getLevels().map((e) => {
+			if (e != null) {
+				e.cameras.map((x) => { x.getCamera().aspect = aspect; });
+				e.cameras.map((x) => { x.getCamera().updateProjectionMatrix(); });
+			}
+		});
 
     renderManager.setRenderSize(window.innerWidth, window.innerHeight);
 }
