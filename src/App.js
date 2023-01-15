@@ -7,7 +7,7 @@ import { Laser } from './Laser.js';
 import { LevelLoader } from './LevelLoader.js';
 import { RenderManager } from './RenderManager.js';
 import { UIManager } from './UIManager.js';
-import { AudioManager } from './AudioManger.js';
+import { AudioManager } from './AudioManager.js';
 
 let scene, lvl, levelLoader, ambLight;
 let renderManager, uiManager, audioManager;
@@ -233,7 +233,6 @@ function updateLevel(delta)
 
 		if (audioManager.getSoundOn())
 			disturbanceTimer -= delta;
-		console.log(disturbanceTimer)
 
 		if (timeLeft <= 0)
 		{
@@ -242,8 +241,12 @@ function updateLevel(delta)
 			setTimeout(() => {
 				lvl.cameras[currentCamera].lightOff(() => { 
 					setTimeout(() => { 
-						displayLevel(0);
-					}, 3000);
+						audioManager.playMonsterGrowlSound(() => {
+							setTimeout(() => {
+								displayLevel(0); 
+							}, 1000);
+						});
+					}, 1000);
 				});
 			}, 2000);
 			
@@ -270,7 +273,7 @@ function updateLevel(delta)
 								});
 							}, 1000);
 						});
-					}, 1000);
+					}, 2000);
 				});
 			}
 			disturbanceTimer = Math.random() * 60 + 120;
@@ -389,8 +392,14 @@ function onPointerDown()
 
 					if (lives == 0)
 					{
-						lvl.cameras.map((e) => { e.setMoving(false, true); });
-						setTimeout(() => { displayLevel(0); }, 3000);
+						lvl.cameras.map((e) => { e.setMoving(false, false); });
+						setTimeout(() => { 
+							audioManager.playMonsterGrowlSound(() => {
+								setTimeout(() => {
+									displayLevel(0); 
+								}, 1000);
+							});
+						}, 2000);
 						timerRunning = false;
 					}
 					else

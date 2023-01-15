@@ -23,6 +23,7 @@ export class AudioManager
     staticSound;
     laserFireSound;
     monsterScreamSound;
+    monsterGrowlSound;
 
     disturbanceSounds;
     
@@ -47,6 +48,7 @@ export class AudioManager
         this.staticSound = new THREE.Audio(this.listener);
         this.laserFireSound = new THREE.Audio(this.listener);
         this.monsterScreamSound = new THREE.Audio(this.listener);
+        this.monsterGrowlSound = new THREE.Audio(this.listener);
         this.steamHissSound = new THREE.Audio(this.listener);
 
         this.disturbanceSounds = [];
@@ -96,6 +98,11 @@ export class AudioManager
         audioLoader.load("../assets/audio/monster_scream.wav", (buffer) => {
             this.monsterScreamSound.setBuffer(buffer);
             this.monsterScreamSound.isPlaying = false;
+        });
+
+        audioLoader.load("../assets/audio/monster_growl.wav", (buffer) => {
+            this.monsterGrowlSound.setBuffer(buffer);
+            this.monsterGrowlSound.isPlaying = false;
         });
 
         for (var i = 0; i < this.disturbanceSounds.length; i++)
@@ -156,6 +163,16 @@ export class AudioManager
     playMonsterScreamSound(callback)
     {
         this.playSoundSingle(this.monsterScreamSound, callback);
+    }
+
+    /**
+     * Plays monster_growl.wav
+     * 
+     * @param callback called when sound is finished playing
+     */
+    playMonsterGrowlSound(callback)
+    {
+        this.playSoundSingle(this.monsterGrowlSound, callback);
     }
 
     /**
@@ -246,6 +263,7 @@ export class AudioManager
             this.cameraMotorSound.setVolume(0.3);
             this.laserFireSound.setVolume(0.6); 
             this.monsterScreamSound.setVolume(0.2);
+            this.monsterGrowlSound.setVolume(1);
 
             this.disturbanceSounds.map((e) => { e.setVolume(0.6); });
         }
@@ -258,6 +276,7 @@ export class AudioManager
             this.cameraMotorSound.setVolume(0);
             this.laserFireSound.setVolume(0);
             this.monsterScreamSound.setVolume(0);
+            this.monsterGrowlSound.setVolume(0);
 
             this.disturbanceSounds.map((e) => { e.setVolume(0); });
         }
