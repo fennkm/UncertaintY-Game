@@ -1,7 +1,10 @@
 "use strict";
 
-import * as THREE from 'three';
-
+/**
+ * Group of objects that work as one teleporting object
+ * 
+ * @param objs list of objects to make into a quantum object
+ */
 export class QuantumGroup
 {
     objs;
@@ -28,6 +31,9 @@ export class QuantumGroup
         this.objs[this.activeObj].getObject().visible = true;
     }
 
+    /**
+     * Called every frame, changes the position of the object is conditions are right
+     */
     update()
     {
         if(this.moving && !this.switchReady && this.objs[this.activeObj].isObserved())
@@ -50,20 +56,37 @@ export class QuantumGroup
         }
     }
 
+    /**
+     * Forces the object to stop teleporting or resume
+     * 
+     * @param val set the object moving or not 
+     */
     setMoving(val)
     {
         if (this.active)
             this.moving = val;
     }
 
+    /**
+     * Removes or adds the object to the scene
+     * 
+     * @param val object active or not
+     */
     setActive(val)
     {
         this.setMoving(val);
 
         this.active = val;
 
+        this.objs.map(function(e) { e.getObject().visible = false; });
+
         this.objs[this.activeObj].getObject().visible = val;
     }
 
+    /**
+     * Gets whether the object is active or not
+     * 
+     * @returns true if the object is active
+     */
     getActiveObj() { return this.objs[this.activeObj]; }
 }

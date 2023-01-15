@@ -28,6 +28,11 @@ export class UIManager
     score;
     scoreGoal;
 
+    /**
+     * Controls the html UI overlay
+     * 
+     * @param audioManger the audio manager for the scene
+     */
     constructor(audioManger)
     {
         this.audioManger = audioManger;
@@ -103,6 +108,11 @@ export class UIManager
         };
     }
 
+    /**
+     * Sets the function to run when a level button is selected
+     * 
+     * @param levelLoadFunc function to load levels
+     */
     setLevelLoadFunc(levelLoadFunc)
     {
         this.lvl1Button.onclick = () => { 
@@ -118,6 +128,9 @@ export class UIManager
         }; 
     }
     
+    /**
+     * Displays the main menu overlay and removes any existing one
+     */
     displayStartScreen()
     {
         this.uiScreen.style.display = "none";
@@ -126,6 +139,11 @@ export class UIManager
             this.uiScreen.style.display = "block";
     }
     
+    /**
+     * Displays the overlay for a page of the intro menu and removes any existing one
+     * 
+     * @param page intro page to display
+     */
     displayIntro(page)
     {
         this.uiScreen.style.display = "none";
@@ -137,6 +155,9 @@ export class UIManager
             this.uiScreen.style.display = "block";
     }
     
+    /**
+     * Displays the camera HUD overlay and removes any existing one
+     */
     displayCameraScreen()
     {
         this.uiScreen.style.display = "none";
@@ -144,12 +165,22 @@ export class UIManager
         if (this.visible)
             this.uiScreen.style.display = "block";
     }
-
+    
+    /**
+     * Sets the cam number of the camera HUD
+     * 
+     * @param val camera number to display
+     */
     setCameraCount(val)
     {
         this.cameraCounter.innerHTML = "CAM " + val;
     }
 
+    /**
+     * Sets the timer of the camera HUD
+     * 
+     * @param seconds number of seconds to display on the timer
+     */
     setTimer(seconds)
     {
         var mins = Math.trunc(seconds / 60);
@@ -163,6 +194,11 @@ export class UIManager
         this.timer.innerHTML = mins + ":" + secs;
     }
 
+    /**
+     * Set the life counter of the camera HUD
+     * 
+     * @param val number of lives to display
+     */
     setLives(val)
     {
         if (val > 3) val = 3;
@@ -175,6 +211,11 @@ export class UIManager
             this.lifeCountSegments[i].style.visibility = "hidden";
     }
 
+    /**
+     * Set the total number of enemies to display on the camera HUD
+     * 
+     * @param val enemy total to display
+     */
     setScoreGoal(val)
     {
         this.scoreGoal = val;
@@ -183,12 +224,22 @@ export class UIManager
         this.scoreText.innerHTML = this.score + " / " + this.scoreGoal;
     }
 
+    /**
+     * Set the current score to display in the camera HUD
+     * 
+     * @param val score to display
+     */
     setScore(val)
     {
         this.score = val;
         this.scoreText.innerHTML = this.score + " / " + this.scoreGoal;
     }
 
+    /**
+     * Show or hide the UI overlay
+     * 
+     * @param val show or hide overlay
+     */
     setUIVisible(val)
     {
         this.visible = val;

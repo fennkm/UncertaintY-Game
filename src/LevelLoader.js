@@ -7,6 +7,12 @@ import { QuantumGroup } from './QuantumGroup.js';
 import { Camera } from './Camera.js';
 import { Level } from './Level.js';
 
+/**
+ * Loads levels from a file and parses them into level objects
+ * 
+ * @param scene the scene to load the levels into
+ * @param audioManager the audioManger in the scene
+ */
 export class LevelLoader
 {
     scene;
@@ -22,6 +28,12 @@ export class LevelLoader
         this.levels = [];
     }
 
+    /**
+     * Loads a level from a file in /assets/models/ called room[num].glb
+     * 
+     * @param levelNum room number to load e.g. room1.glb, room2.glb
+     * @param callback called when room is finished loading
+     */
     loadLevel(levelNum, callback)
     {
         while (this.levels.length < levelNum - 1) this.levels.push(null);
@@ -49,6 +61,12 @@ export class LevelLoader
 		);
     }
 
+    /**
+     * Processes a level into a level object
+     * 
+     * @param levelNum level number to store as
+     * @param gltf loaded gltf object to parse
+     */
     processLevel(levelNum, gltf)
     {
         let levelScene;
@@ -228,7 +246,18 @@ export class LevelLoader
         }
     }
 
+    /**
+     * Gets a loaded level object
+     * 
+     * @param levelNum level number to fetch, must have been loaded first
+     * @returns level object
+     */
     getLevel(levelNum) { return this.levels[levelNum - 1]; }
 
+    /**
+     * Get list of all levels currently loaded
+     * 
+     * @returns list of level objects
+     */
     getLevels() { return this.levels; }
 }

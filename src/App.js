@@ -16,15 +16,19 @@ let controls, clock;
 let pointer, raycaster, laser, selection;
 let aiming, lives, score, timeLeft, timerRunning;
 
-var debug = false;
+var debug;
 var helpers;
 var hasControl;
 var disturbanceTimer;
 
 class App 
 {
+	/**
+	 * Starts the game
+	 */
 	init() 
 	{
+		debug = false;
 		const canvas = document.getElementById("gl-canvas");
 
 		scene = new THREE.Scene();
@@ -45,7 +49,7 @@ class App
 		menuCam = new THREE.PerspectiveCamera(45, 2, 0.1, 10000);
 		scene.add(menuCam);
 
-		viewingCamera = menuCam;//(debug ? debugCam : cameras[currentCamera].getCamera());
+		viewingCamera = menuCam;
 		renderManager = new RenderManager(scene, canvas, viewingCamera);
 
 		renderManager.setScreenFX(!debug);
@@ -53,7 +57,7 @@ class App
 		switchingCameras = false;
 		hasControl = true;
 
-		ambLight = new THREE.AmbientLight( 0x404040, (debug ? 1 : 0));
+		ambLight = new THREE.AmbientLight( 0x404040, 0);
 		scene.add(ambLight);
 
 		laser = new Laser(scene);
@@ -86,6 +90,9 @@ class App
 	}
 }
 
+/**
+ * Called when the game pre-loads all of the levels, finalises setup and displays the UI
+ */
 function onGameLoad()
 {
 	window.addEventListener("resize", onWindowResize);
@@ -99,6 +106,9 @@ function onGameLoad()
 	requestAnimationFrame(render);
 }
 
+/**
+ * Called when the window is resized, ensures the cameras and renderer all change size accordingly
+ */
 function onWindowResize()
 {
     const aspect = window.innerWidth / window.innerHeight;
@@ -119,6 +129,9 @@ function onWindowResize()
     renderManager.setRenderSize(window.innerWidth, window.innerHeight);
 }
 
+/**
+ * Called every frame, renders the scene as well as performing updates to necessary objects
+ */
 function render() 
 {
     const delta = clock.getDelta()
@@ -132,6 +145,11 @@ function render()
     requestAnimationFrame(render);
 }
 
+/**
+ * Displays a level and hides the previous level. Level 0 is the main menu, while levels 1 & 2 are rooms
+ * 
+ * @param levelNum the level to be displayed
+ */
 function displayLevel(levelNum)
 {
 	if (levelNum == 0)
@@ -177,6 +195,11 @@ function displayLevel(levelNum)
 
 		lvl.cameras.map((e) => { e.setMoving(true, true); });
 		lvl.cameras[currentCamera].setVisible(true);
+		
+		lvl.cameras[currentCamera].setVisible(true);
+
+		lvl.interactables.map((e) => { e.getObject().visible = true; });
+		lvl.quantumGroups.map((e) => { e.setActive(true); });
 
 		if (!debug)
 		{
@@ -197,6 +220,11 @@ function displayLevel(levelNum)
 	}
 }
 
+/**
+ * Performs updates on all the active elements in the level
+ * 
+ * @param delta time since last update, in seconds
+ */
 function updateLevel(delta)
 {
 	if (timerRunning)
@@ -249,7 +277,7 @@ function updateLevel(delta)
 		}
 	}
 
-	laser.update();
+	laser.update(delta);
 	lvl.cameras.map(e => e.update(e == lvl.cameras[currentCamera]));
 	lvl.interactables.map(e => e.update(lvl.cameras[currentCamera]));
 	lvl.quantumGroups.map(e => e.update());
@@ -270,6 +298,12 @@ function updateLevel(delta)
 		selection = intersects[0];
 }
 
+/**
+ * Creates fly controls for the camera passed in, intended for the debug camera
+ * 
+ * @param camera the camera to create controls for
+ * @param canvas the canvas being rendered to
+ */
 function createControls(camera, canvas) 
 {
     controls = new FlyControls(camera, canvas);
@@ -279,13 +313,21 @@ function createControls(camera, canvas)
     controls.rollSpeed = 0.5;
 }
 
+/**
+ * Called when the mouse is moved, updates the stored position for the mouse
+ * 
+ * @param event mouse move event
+ */
 function onPointerMove(event) 
 {
 	pointer.x = (event.clientX / window.innerWidth) * 2 - 1;
 	pointer.y = - (event.clientY / window.innerHeight) * 2 + 1;
 }
 
-function onPointerDown(event) 
+/**
+ * Called when the user clicks the mouse button
+ */
+function onPointerDown() 
 {
     if (lvl != null && selection != null && hasControl && !laser.isActive() && !lvl.cameras[currentCamera].isAnimating() && aiming)
     {
@@ -363,6 +405,11 @@ function onPointerDown(event)
     }
 }
 
+/**
+ * Called when a user presses a keyboard key
+ * 
+ * @param event the key down event
+ */
 function onKeyDown(event)
 {
     var keyCode = event.which;
@@ -439,6 +486,12 @@ function onKeyDown(event)
     }
 }
 
+/**
+ * Gets the world position of an object in the scene
+ * 
+ * @param obj the object to get the position of
+ * @returns the world position of the object
+ */
 function getWorldPosition(obj)
 {
     return obj.localToWorld(new Vector3(0, 0, 0));

@@ -3,6 +3,13 @@
 import * as THREE from 'three';
 import * as PP from 'postprocessing';
 
+/**
+ * Handles rendering the scene to the screen and postprocessing effects
+ * 
+ * @param scene the scene to render to the screen
+ * @param canvas the canvas to render to
+ * @param camera the camera to render from
+ */
 export class RenderManager
 {
     renderer;
@@ -61,21 +68,35 @@ export class RenderManager
         this.screenFXActive = true;
     }
 
+    /**
+     * Plays a static effect on the screen
+     * 
+     * @param audioManager the audioManager for the scene
+     * @param callback called when effect finishes
+     */
     playStatic(audioManager, callback)
     {
-        this.fxComposer.removePass(this.screenEffect);
-        this.fxComposer.addPass(this.staticScreen);
-		this.fxComposer.addPass(this.screenEffect);
+        if (this.screenFXActive)
+        {
+            this.fxComposer.removePass(this.screenEffect);
+            this.fxComposer.addPass(this.staticScreen);
+            this.fxComposer.addPass(this.screenEffect);
 
-        audioManager.setStaticSound(true);
+            audioManager.setStaticSound(true);
 
-        setTimeout(() => { 
-            audioManager.setStaticSound(false);
-            this.fxComposer.removePass(this.staticScreen);
-            callback();
-        }, 1400);
+            setTimeout(() => { 
+                audioManager.setStaticSound(false);
+                this.fxComposer.removePass(this.staticScreen);
+                callback();
+            }, 1400);
+        }
     }
 
+    /**
+     * Sets the camera to render from
+     * 
+     * @param camera camera object to render from
+     */
     setCamera(camera)
     {
         this.camera = camera;
@@ -83,6 +104,11 @@ export class RenderManager
         this.fxComposer.setMainCamera(this.camera);
     }
 
+    /**
+     * Toggles the postprocessing effects
+     * 
+     * @param val turn effects on or off
+     */
     setScreenFX(val)
     {
         if (val && !this.screenFXActive)
@@ -97,11 +123,20 @@ export class RenderManager
         }
     }
 
+    /**
+     * Sets the size of the rendering window
+     * 
+     * @param width width of the window
+     * @param height height of the window
+     */
     setRenderSize(width, height)
     {
         this.renderer.setSize(width, height);
     }
 
+    /**
+     * Renders the scene to the canvas
+     */
     render()
     {
         this.fxComposer.render();

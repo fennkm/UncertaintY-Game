@@ -2,6 +2,17 @@
 
 import * as THREE from 'three';
 
+/**
+ * A security camera for levels, has a light and animation
+ * 
+ * @param camera the three.js camera object to wrap
+ * @param pitchController the control point for pitch control
+ * @param yawController the control point for yaw control
+ * @param rotationValues an array of [pitch,yaw] values to transition through
+ * @param rotationSpeed the speed of camera rotation in radians per second
+ * @param lightAngle the angle of the spotlight attached
+ * @param pauseLength how long the camera should pause for between rotation values
+ */
 export class Camera
 {
     camera;
@@ -186,6 +197,11 @@ export class Camera
         this.innerLightOffAnimAction.setLoop(THREE.LoopOnce, 1);
     }
 
+    /**
+     * Updates the camera animation and sound
+     * 
+     * @param isActiveCam is this camera rendering to the screen
+     */
     update(isActiveCam)
     {
         const delta = this.clock.getDelta();
@@ -225,6 +241,11 @@ export class Camera
         }
     }
     
+    /**
+     * Plays the camera light on animation
+     * 
+     * @param callback called when animation is finished
+     */
     lightOn(callback)
     {
         if (!this.animating)
@@ -243,7 +264,12 @@ export class Camera
             this.innerLightOnAnimAction.play();
         }
     }
-
+    
+    /**
+     * Plays the camera light off animation
+     * 
+     * @param callback called when animation is finished
+     */
     lightOff(callback)
     {
         if (!this.animating)
@@ -263,12 +289,23 @@ export class Camera
         }
     }
 
+    /**
+     * Sets the camera's movement and light
+     * 
+     * @param val turn camera off or on
+     */
     setActive(val)
     {
-        this.setMoving(val);
+        this.setMoving(val, false);
         this.setVisible(val);
     }
 
+    /**
+     * Starts or stops the camera's movement
+     * 
+     * @param isMoving start or stop the camera
+     * @param playEffect play the stop sound effect
+     */
     setMoving(isMoving, playEffect)
     {
         if (isMoving && !this.moving)
@@ -293,6 +330,9 @@ export class Camera
         this.moving = isMoving;
     }
 
+    /**
+     * Reset the camera to it's initial position in its animation
+     */
     reset()
     {
         this.yawAnimMixer.time = 0;
@@ -303,17 +343,42 @@ export class Camera
         this.isPanning = false;
     }
 
+    /**
+     * Turn the camera's light on or off
+     * 
+     * @param val light on or off
+     */
     setVisible(val)
     {
         this.light.intensity = (val ? 1 : 0);
         this.innerLight.intensity = (val ? 2 : 0);
     }
 
+    /**
+     * Is the camera's light on
+     * 
+     * @returns true is the light is on
+     */
     getLightVisibility() { return this.light.intensity > 0; }
 
+    /**
+     * Is the camera going through a light on/off animation
+     * 
+     * @returns true if an animation is playing
+     */
     isAnimating() { return this.animating; }
 
+    /**
+     * Gets the three.js camera object wrapped by this
+     * 
+     * @returns the camera object
+     */
     getCamera() { return this.camera; }
 
+    /**
+     * Gets the spotlight object attached to this
+     * 
+     * @returns the spotlight object
+     */
     getLight() { return this.light; }
 }

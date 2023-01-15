@@ -1,8 +1,15 @@
 "use strict";
 
 import * as THREE from 'three';
-import { Vector3, Vector2, Box3Helper } from 'three';
+import { Vector3, Vector2 } from 'three';
 
+/**
+ * An object in the scene that can be shot with the laser
+ * 
+ * @param object the object to wrap
+ * @param boundingBox the world-aligned bounding box of the attached object
+ * @param quantumGroup -1 if the object is not quantum, otherwise the index of the quantum group it is a part of
+ */
 export class Interactable
 {
     observed;
@@ -46,15 +53,20 @@ export class Interactable
         this.sceneToView.multiplyMatrices(camera.getLight().matrixWorld, this.invertZ).invert();
 
         if (camera.getLightVisibility())
-            this.observed = this.boxConeIntersect(this.object, this.boundingBox, camera);
+            this.observed = this.boxConeIntersect(this.boundingBox, camera);
         else
             this.observed = false;
     }
 
-    // NOTE: DOES NOT COVER ALL CASES, OBJECTS CONSIDERED INVISIBLE IF ONE VERTEX IS BEHIND THE
-    //  CAMERA, OBJECTS ALSO INVISIBLE IF NO EDGES ARE VISIBLE (E.G. VERY LARGE VERY CLOSE OBJECTS)
-    // This decision was made to optimise performance, as these cases are never encountered in-game.
-    boxConeIntersect(obj, boundingBox, camera)
+    /**
+     * Determines whether or not a bounding box is illuminated by a camera's spotlight.
+     * NOTE: an object is considered invisible if any point is behind the spotlight, or it entirely encompasses is not edge intersections
+     * 
+     * @param boundingBox the bounding box to check intersection with
+     * @param camera the camera whose light to check intersection with
+     * @returns true if the bounding box is illuminated by the spotlight
+     */
+    boxConeIntersect(boundingBox, camera)
     {
         const viewBounds = boundingBox.clone().applyMatrix4(this.sceneToView);
         // Get vertices of bounding box
@@ -110,6 +122,14 @@ export class Interactable
         return false;
     }
 
+    /**
+     * Checks if a line intersects with a circle in 2D space
+     * 
+     * @param p the point the line starts from
+     * @param u the vector of the point, so the endpoint is p + u
+     * @param r the radius of the circle, centred at the origin
+     * @returns true if the line intersects the circle
+     */
     lineCircleIntersection(p, u, r)
     {
         const a = u.x * u.x + u.y * u.y;
@@ -137,9 +157,24 @@ export class Interactable
         return new Vector2(p.x, p.y).length() <= r;
     }
 
+    /**
+     * Is this object illuminated by a light
+     * 
+     * @returns true if the object is observed
+     */
     isObserved() { return this.observed; }
 
+    /**
+     * Get the object wrapped by this
+     * 
+     * @returns the three.js object
+     */
     getObject() { return this.object; }
 
+    /**
+     * Get the quantum group this object is a part of
+     * 
+     * @returns -1 if this object is not part of a quantum group, otherwise the index of the group this object is in
+     */
     getQuantumGroup() { return this.quantumGroup; }
 }

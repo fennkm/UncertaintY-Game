@@ -2,6 +2,11 @@
 
 import * as THREE from 'three';
 
+/**
+ * Loads and plays audio tracks
+ * 
+ * @param scene the scene to play audio in
+ */
 export class AudioManager
 {
     soundOffBtn;
@@ -20,12 +25,15 @@ export class AudioManager
     monsterScreamSound;
 
     disturbanceSounds;
-
+    
     constructor(scene)
     {
         this.scene = scene;
     }
 
+    /**
+     * Sets up the audio system to start playing audio. (Note: must be called as part of a user interaction)
+     */
     initialise()
     {
         this.listener = new THREE.AudioListener();
@@ -100,36 +108,72 @@ export class AudioManager
         }
     }
 
+    /**
+     * Plays hover.wav
+     * 
+     * @param callback called when sound is finished playing
+     */
     playHoverSound(callback)
     {
         this.playSoundSingle(this.hoverSound, callback);
     }
 
+    /**
+     * Plays click.wav
+     * 
+     * @param callback called when sound is finished playing
+     */
     playClickSound(callback)
     {
         this.playSoundSingle(this.clickSound, callback);
     }
 
+    /**
+     * Plays camera_stop.wav
+     * 
+     * @param callback called when sound is finished playing
+     */
     playCameraStopSound(callback)
     {
         this.playSoundSingle(this.cameraStopSound, callback);
     }
 
+    /**
+     * Plays laser_fire.wav
+     * 
+     * @param callback called when sound is finished playing
+     */
     playLaserFireSound(callback)
     {
         this.playSoundSingle(this.laserFireSound, callback);
     }
 
+    /**
+     * Plays monster_scream.wav
+     * 
+     * @param callback called when sound is finished playing
+     */
     playMonsterScreamSound(callback)
     {
         this.playSoundSingle(this.monsterScreamSound, callback);
     }
 
+    /**
+     * Plays a random track titled disturbance[num].wav
+     * 
+     * @param callback called when sound is finished playing
+     */
     playRandomDisturbance(callback)
     {
         this.playSoundSingle(this.disturbanceSounds[Math.floor(Math.random() * this.disturbanceSounds.length)], callback);
     }
 
+    /**
+     * Plays a single sound once
+     * 
+     * @param sound sound to play
+     * @param callback called when sound is finished playing
+     */
     playSoundSingle(sound, callback)
     {
         if (sound != null)
@@ -145,16 +189,31 @@ export class AudioManager
             callback();
     }
 
+    /**
+     * Turns camera_motor.wav on or off
+     * 
+     * @param enabled turn on or off
+     */
     setCameraMotorSound(enabled)
     {
         this.setContinuousSound(this.cameraMotorSound, enabled)
     }
 
+    /**
+     * Turns static_sound.wav on or off
+     * 
+     * @param enabled turn on or off
+     */
     setStaticSound(enabled)
     {
         this.setContinuousSound(this.staticSound, enabled)
     }
 
+    /**
+     * Turns a continuously looping sound on or off
+     * 
+     * @param enabled turn on or off
+     */
     setContinuousSound(sound, enabled)
     {
         if (sound != null)
@@ -166,6 +225,11 @@ export class AudioManager
         }
     }
 
+    /**
+     * Turns the volume of all sounds on or off
+     * 
+     * @param val turn on or off
+     */
     setSound(val)
     {
         if (this.listener == null)
@@ -199,5 +263,10 @@ export class AudioManager
         }
     }
 
+    /**
+     * Gets whether or not the sound system is playing
+     * 
+     * @returns true if sound is on
+     */
     getSoundOn() { return this.soundOn; }
 }

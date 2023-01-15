@@ -4,6 +4,11 @@ import * as THREE from 'three';
 import { Object3D, Vector3 } from 'three';
 import { MeshLine, MeshLineMaterial } from 'three.meshline';
 
+/**
+ * Laser fired by the user to destroy objects
+ * 
+ * @param scene the scene to put the laser in
+ */
 export class Laser
 {
     laser;
@@ -87,14 +92,24 @@ export class Laser
         this.lightFlickerAnimAction = this.lightAnimMixer.clipAction(flickerClip);
     }
 
-    update()
+    /**
+     * Run every frame to update the laser animation
+     * 
+     * @param delta time passed since last update in seconds
+     */
+    update(delta)
     {
-        const delta = this.clock.getDelta();
-        
         this.laserAnimMixer.update(delta);
         this.lightAnimMixer.update(delta);
     }
 
+    /**
+     * Plays the fire animation of the laser
+     * 
+     * @param sourcePos position laser is fired from
+     * @param targetPos position laser hits
+     * @param callback called when animation finished playing
+     */
     fire(sourcePos, targetPos, callback)
     {
         if (!this.active)
@@ -133,5 +148,10 @@ export class Laser
         }
     }
 
+    /**
+     * Is the laser playing its fire animation 
+     * 
+     * @returns true if the animation is playing
+     */
     isActive() { return this.active; }
 }
