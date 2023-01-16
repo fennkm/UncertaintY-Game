@@ -55,7 +55,6 @@ export class LevelLoader
 			},
 			(xhr) => {
                 uiManager.setLoadingProgress(progressAdd + (xhr.loaded / loadSizes[levelNum - 1]) * progressMul);
-				console.log(Math.trunc((xhr.loaded * 100) / loadSizes[levelNum - 1]) + "% loaded");
 			},
 			(error) => {
 				console.log(error);

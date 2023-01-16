@@ -138,7 +138,7 @@ export class UIManager
     {
         if (this.uiScreen != null)
             this.uiScreen.style.display = "none";
-            
+
         this.uiScreen = this.loadingUI;
         if (this.visible)
             this.uiScreen.style.display = "block";
@@ -151,7 +151,6 @@ export class UIManager
      */
     setLoadingProgress(progress)
     {
-        console.log((progress * 1200) + "px");
         this.loadingBar.style.width = (progress * 1200) + "px";
     }
     
@@ -162,7 +161,7 @@ export class UIManager
     {
         if (this.uiScreen != null)
             this.uiScreen.style.display = "none";
-            
+
         this.uiScreen = this.menuUI;
         if (this.visible)
             this.uiScreen.style.display = "block";
@@ -177,7 +176,7 @@ export class UIManager
     {
         if (this.uiScreen != null)
             this.uiScreen.style.display = "none";
-            
+
 
         const display = [this.introPage1, this.introPage2, this.introPage3][page];
 
@@ -193,7 +192,7 @@ export class UIManager
     {
         if (this.uiScreen != null)
             this.uiScreen.style.display = "none";
-            
+
         this.uiScreen = this.cameraUI;
         if (this.visible)
             this.uiScreen.style.display = "block";

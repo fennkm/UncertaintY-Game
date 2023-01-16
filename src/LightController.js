@@ -62,6 +62,7 @@ export class LightController
             this.animating = true;
             
             this.currentCallback = () => { 
+                this.animating = false;
                 callback();
             };
 

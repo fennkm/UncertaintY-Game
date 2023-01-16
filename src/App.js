@@ -198,6 +198,7 @@ function displayLevel(levelNum)
 			timeLeft = 900;
 
 		timerRunning = true;
+		hasControl = true;
 		
 		disturbanceTimer = Math.random() * 60 + 120;
 
@@ -225,6 +226,7 @@ function displayLevel(levelNum)
 
 		uiManager.displayCameraScreen();
 
+		console.log(lvl);
 		lvl.helpers.map((e) => { e.visible = debug });
 
 		lvl.scene.visible = true;
@@ -460,6 +462,8 @@ function onKeyDown(event)
         currentCamera = (currentCamera + 1) % lvl.cameras.length;
 		lvl.cameras[currentCamera].setVisible(true);
 
+		aiming = false;
+
 		uiManager.setCameraCount(currentCamera + 1);
 
 		if (!debug)
@@ -512,10 +516,6 @@ function onKeyDown(event)
 			debugCam.rotation.set(0, 0, 0);
         }
     }
-	else if (keyCode == 115)
-	{
-		score = 99;
-	}
 }
 
 /**
