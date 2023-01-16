@@ -226,7 +226,6 @@ function displayLevel(levelNum)
 
 		uiManager.displayCameraScreen();
 
-		console.log(lvl);
 		lvl.helpers.map((e) => { e.visible = debug });
 
 		lvl.scene.visible = true;
@@ -482,9 +481,7 @@ function onKeyDown(event)
     }
     else if (keyCode == 113) // F2 key
     {
-		lvl.helpers.map((e) => { if (e.type == "PointLightHelper") console.log(e); });
-
-        if (debug)
+		if (debug)
         {
 			if (lvl == null)
 				viewingCamera = menuCam;
