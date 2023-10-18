@@ -31,3 +31,9 @@ Using:
 - [MeshLine by spite](https://github.com/spite/THREE.MeshLine)
 - [Post Processing by vanruesc](https://github.com/pmndrs/postprocessing)
 - [Free Sci-Fi Office Pack by Terresquall](https://assetstore.unity.com/packages/3d/environments/sci-fi/free-sci-fi-office-pack-195067)
+
+![alt text](https://github.com/fennkm/UncertaintY-Game/blob/main/Thumbnail1.PNG?raw=true)
+
+![alt text](https://github.com/fennkm/UncertaintY-Game/blob/main/Thumbnail2.PNG?raw=true)
+
+![alt text](https://github.com/fennkm/UncertaintY-Game/blob/main/Thumbnail3.PNG?raw=true)
