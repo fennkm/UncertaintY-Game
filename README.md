@@ -18,6 +18,8 @@ This game was made using WebGL with ThreeJS over the course of a month for a uni
 
 ## Execution instructions
 
+IMPORTANT: level files are stored using git lfs, please run `git lfs pull` after cloning to download these files.
+
 To install dependencies, run `npm install`.
 
 To build source files, run `npm run build`.
