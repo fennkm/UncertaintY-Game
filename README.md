@@ -16,8 +16,6 @@ UncertintY is a hide-and-seek game with a quantum twist! Watch the security came
 
 This game was made using WebGL with ThreeJS over the course of a month for a university project. Complete with sound effects, spooks, and 2 levels created lovingly using blender. Featuing 3 hand-made assets: book, concical flask, and security camera!
 
-It ain't much but it's mine!
-
 ## Execution instructions
 
 To install dependencies, run `npm install`.
