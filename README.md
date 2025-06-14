@@ -1,5 +1,7 @@
 # UncertaintY
 
+**Play it on [itch.io](https://fennfenn.itch.io/uncertainty)!**
+
 *Oh, thank god you're here! You're the Chief of Security, right…? We've got a bit of a situation going on if you hadn't already noticed: there's been an unfortunate… incident… in the labs. We've been working on some fascinating research into macroscopic quantum behaviour - really riveting stuff, I tell you - and we had just started to move on to animal testing and... well. Long story short: there's been a breach in containment.*
 
 *We've got god-knows-what running around the labs, and what's worse is they've somehow taken out the main power grid. We managed to rig up an auxiliary generator with just enough juice to access the security camera network. We hooked it up and... nothing. Can't see hide nor hair of the experiments and more worryingly, nor the scientists that had been working on them. Now, Professor Lynn has helpfully informed us that this is due to a peculiar quirk of these test subjects.*
@@ -14,7 +16,7 @@
 
 UncertintY is a hide-and-seek game with a quantum twist! Watch the security cameras carefully and eliminate the mysterious entities before they take over the lab!
 
-This game was made using WebGL with ThreeJS over the course of a month for a university project. Complete with sound effects, spooks, and 2 levels created lovingly using blender. Featuing 3 hand-made assets: book, concical flask, and security camera!
+This game was made **without an engine** using WebGL with ThreeJS over the course of a month for a university project. Complete with sound effects, spooks, and 2 levels created lovingly using blender. Featuing 3 hand-made assets: book, concical flask, and security camera!
 
 ## Execution instructions
 
